@@ -1,9 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-romantic.jpg";
 import heartFlowers from "@/assets/heart-flowers.png";
 
 const Hero = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    if (user) {
+      // User is logged in, maybe show memories or profile
+      navigate('/');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden">
       {/* Background decorative elements */}
@@ -33,20 +47,45 @@ const Hero = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button 
-                variant="romantic" 
-                size="lg" 
-                className="text-lg px-8 py-6 font-serif"
-              >
-                Start Your Journey
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-6 border-primary text-primary hover:bg-primary hover:text-white"
-              >
-                Learn More
-              </Button>
+              {user ? (
+                <>
+                  <Button 
+                    variant="romantic" 
+                    size="lg" 
+                    className="text-lg px-8 py-6 font-serif"
+                    onClick={handleGetStarted}
+                  >
+                    View My Memories
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg px-8 py-6 border-primary text-primary hover:bg-primary hover:text-white"
+                    onClick={signOut}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="romantic" 
+                    size="lg" 
+                    className="text-lg px-8 py-6 font-serif"
+                    onClick={handleGetStarted}
+                  >
+                    Start Your Journey
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg px-8 py-6 border-primary text-primary hover:bg-primary hover:text-white"
+                    onClick={handleGetStarted}
+                  >
+                    Sign In
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           

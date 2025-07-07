@@ -1,7 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const CallToAction = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate(user ? '/' : '/auth');
+  };
+
   return (
     <section className="py-20 bg-gradient-hero">
       <div className="container mx-auto px-4">
@@ -23,15 +32,17 @@ const CallToAction = () => {
                   variant="romantic" 
                   size="lg" 
                   className="text-lg px-10 py-6 font-serif"
+                  onClick={handleGetStarted}
                 >
-                  Create Account - It's Free
+                  {user ? "Create Your First Memory" : "Create Account - It's Free"}
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg" 
                   className="text-lg px-10 py-6 border-primary text-primary hover:bg-primary hover:text-white"
+                  onClick={handleGetStarted}
                 >
-                  View Demo
+                  {user ? "View My Memories" : "Sign In"}
                 </Button>
               </div>
               
