@@ -8,35 +8,53 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Romantic pastel color palette */
+    --background: 350 25% 98%;
+    --foreground: 320 15% 25%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 350 30% 96%;
+    --card-foreground: 320 15% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 350 30% 96%;
+    --popover-foreground: 320 15% 25%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Soft blush pink */
+    --primary: 340 65% 75%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 340 75% 85%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Lavender */
+    --secondary: 270 45% 85%;
+    --secondary-foreground: 270 25% 35%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Cream */
+    --muted: 45 35% 92%;
+    --muted-foreground: 320 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent: Soft rose */
+    --accent: 355 55% 88%;
+    --accent-foreground: 320 20% 30%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 340 25% 88%;
+    --input: 340 25% 90%;
+    --ring: 340 65% 75%;
 
-    --radius: 0.5rem;
+    /* Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    --gradient-soft: linear-gradient(180deg, hsl(var(--background)), hsl(var(--accent)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary-glow)), hsl(var(--secondary)));
+
+    /* Shadows */
+    --shadow-romantic: 0 10px 30px -10px hsl(var(--primary) / 0.3);
+    --shadow-soft: 0 4px 20px -5px hsl(var(--primary) / 0.2);
+
+    /* Animations */
+    --transition-romantic: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 1rem;
 
     --sidebar-background: 0 0% 98%;
 
