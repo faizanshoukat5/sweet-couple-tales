@@ -11,8 +11,8 @@ const Hero = () => {
 
   const handleGetStarted = () => {
     if (user) {
-      // User is logged in, maybe show memories or profile
-      navigate('/');
+      // User is logged in, go to dashboard
+      navigate('/dashboard');
     } else {
       navigate('/auth');
     }
