@@ -1,0 +1,262 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { CalendarIcon, Heart, User } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from '@/hooks/use-toast';
+
+interface ProfileSetupProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+interface ProfileData {
+  display_name: string;
+  partner_name: string;
+  relationship_start_date: Date | null;
+  avatar_url: string;
+}
+
+const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  
+  const [profileData, setProfileData] = useState<ProfileData>({
+    display_name: '',
+    partner_name: '',
+    relationship_start_date: null,
+    avatar_url: '',
+  });
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setProfileData({
+          display_name: data.display_name || '',
+          partner_name: data.partner_name || '',
+          relationship_start_date: data.relationship_start_date ? new Date(data.relationship_start_date) : null,
+          avatar_url: data.avatar_url || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data",
+        variant: "destructive",
+      });
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open && user) {
+      setInitialLoading(true);
+      fetchProfile();
+    }
+  }, [open, user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const updateData = {
+        user_id: user.id,
+        display_name: profileData.display_name,
+        partner_name: profileData.partner_name,
+        relationship_start_date: profileData.relationship_start_date 
+          ? format(profileData.relationship_start_date, 'yyyy-MM-dd') 
+          : null,
+        avatar_url: profileData.avatar_url,
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(updateData, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been saved successfully!",
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-2xl text-center flex items-center justify-center gap-2">
+            <Heart className="w-6 h-6 text-primary" />
+            Profile Setup
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Display Name */}
+          <div className="space-y-2">
+            <Label htmlFor="display_name" className="text-base font-medium">
+              Your Name
+            </Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                id="display_name"
+                value={profileData.display_name}
+                onChange={(e) => setProfileData(prev => ({ ...prev, display_name: e.target.value }))}
+                placeholder="Enter your name"
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Partner Name */}
+          <div className="space-y-2">
+            <Label htmlFor="partner_name" className="text-base font-medium">
+              Partner's Name
+            </Label>
+            <div className="relative">
+              <Heart className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                id="partner_name"
+                value={profileData.partner_name}
+                onChange={(e) => setProfileData(prev => ({ ...prev, partner_name: e.target.value }))}
+                placeholder="Enter your partner's name"
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Relationship Start Date */}
+          <div className="space-y-2">
+            <Label className="text-base font-medium">When did your love story begin?</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !profileData.relationship_start_date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {profileData.relationship_start_date 
+                    ? format(profileData.relationship_start_date, "PPP") 
+                    : "Select your anniversary"
+                  }
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={profileData.relationship_start_date || undefined}
+                  onSelect={(date) => setProfileData(prev => ({ 
+                    ...prev, 
+                    relationship_start_date: date || null 
+                  }))}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Avatar URL */}
+          <div className="space-y-2">
+            <Label htmlFor="avatar_url" className="text-base font-medium">
+              Profile Picture URL (optional)
+            </Label>
+            <Input
+              id="avatar_url"
+              type="url"
+              value={profileData.avatar_url}
+              onChange={(e) => setProfileData(prev => ({ ...prev, avatar_url: e.target.value }))}
+              placeholder="https://example.com/your-photo.jpg"
+            />
+            {profileData.avatar_url && (
+              <div className="mt-2">
+                <img
+                  src={profileData.avatar_url}
+                  alt="Profile preview"
+                  className="w-16 h-16 rounded-full object-cover mx-auto"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-gradient-romantic text-white"
+            >
+              {loading ? 'Saving...' : 'Save Profile'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ProfileSetup;
