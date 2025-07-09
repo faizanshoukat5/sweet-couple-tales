@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Upload, X, Tag, Heart } from 'lucide-react';
+import { CalendarIcon, Upload, X, Tag, Heart, Images } from 'lucide-react';
 import { format } from 'date-fns';
+import BulkPhotoUpload from './BulkPhotoUpload';
 
 interface CreateMemoryModalProps {
   open: boolean;
@@ -186,25 +188,51 @@ const CreateMemoryModal = ({ open, onOpenChange }: CreateMemoryModalProps) => {
           <div className="space-y-3">
             <Label className="text-base font-medium">Photos</Label>
             
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById('photo-upload')?.click()}
-                disabled={uploadingPhoto}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {uploadingPhoto ? 'Uploading...' : 'Add Photos'}
-              </Button>
-              <input
-                id="photo-upload"
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-            </div>
+            <Tabs defaultValue="single" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="single">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Single Upload
+                </TabsTrigger>
+                <TabsTrigger value="bulk">
+                  <Images className="w-4 h-4 mr-2" />
+                  Bulk Upload
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="single" className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('photo-upload')?.click()}
+                    disabled={uploadingPhoto}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploadingPhoto ? 'Uploading...' : 'Add Photos'}
+                  </Button>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="bulk">
+                <BulkPhotoUpload 
+                  onPhotosUploaded={(photoUrls) => 
+                    setFormData(prev => ({
+                      ...prev,
+                      photos: [...prev.photos, ...photoUrls]
+                    }))
+                  }
+                />
+              </TabsContent>
+            </Tabs>
 
             {formData.photos.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
