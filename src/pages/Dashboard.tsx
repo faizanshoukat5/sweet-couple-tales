@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemories } from '@/hooks/useMemories';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Heart, Calendar, Tag, Search, Grid, List } from 'lucide-react';
+import { Plus, Heart, Calendar, Tag, Search, Grid, List, Download, Bell, BellOff } from 'lucide-react';
 import CreateMemoryModal from '@/components/CreateMemoryModal';
 import MemoryCard from '@/components/MemoryCard';
 import ProfileSetup from '@/components/ProfileSetup';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { memories, loading } = useMemories();
+  const { memories, loading, exportMemories } = useMemories();
+  const { permission, requestPermission, sendInstantNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -32,6 +34,38 @@ const Dashboard = () => {
 
   const favoriteMemories = filteredMemories.filter(memory => memory.is_favorite);
   const allTags = [...new Set(memories.flatMap(memory => memory.tags))];
+
+  const handleNotificationToggle = async () => {
+    if (permission === 'default') {
+      const granted = await requestPermission();
+      if (granted) {
+        sendInstantNotification(
+          'Notifications Enabled',
+          'You\'ll now receive memory reminders and anniversary notifications!'
+        );
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Check for today's anniversaries and send notifications
+    if (permission === 'granted' && memories.length > 0) {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      
+      memories.forEach(memory => {
+        const memoryDate = new Date(memory.memory_date);
+        const memoryDateString = `${today.getFullYear()}-${String(memoryDate.getMonth() + 1).padStart(2, '0')}-${String(memoryDate.getDate()).padStart(2, '0')}`;
+        
+        if (memoryDateString === todayString && memoryDate.getFullYear() !== today.getFullYear()) {
+          sendInstantNotification(
+            'Anniversary Today! 🎉',
+            `Today marks the anniversary of "${memory.title}"`
+          );
+        }
+      });
+    }
+  }, [memories, permission, sendInstantNotification]);
 
   if (loading) {
     return (
@@ -59,6 +93,31 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={exportMemories}
+                disabled={memories.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleNotificationToggle}
+                className={permission === 'granted' ? 'text-primary' : ''}
+              >
+                {permission === 'granted' ? (
+                  <>
+                    <Bell className="w-4 h-4 mr-2" />
+                    Notifications On
+                  </>
+                ) : (
+                  <>
+                    <BellOff className="w-4 h-4 mr-2" />
+                    Enable Notifications
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowProfileSetup(true)}

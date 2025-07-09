@@ -159,7 +159,7 @@ export const useMemories = () => {
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('memory-photos')
@@ -183,6 +183,72 @@ export const useMemories = () => {
     }
   };
 
+  const uploadMultiplePhotos = async (files: FileList): Promise<string[]> => {
+    if (!user) throw new Error('User not authenticated');
+
+    const uploadPromises = Array.from(files).map(file => uploadPhoto(file));
+    
+    try {
+      const results = await Promise.allSettled(uploadPromises);
+      const successfulUploads = results
+        .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
+        .map(result => result.value);
+      
+      const failedCount = results.length - successfulUploads.length;
+      
+      if (failedCount > 0) {
+        toast({
+          title: "Partial Upload Success",
+          description: `${successfulUploads.length} photos uploaded, ${failedCount} failed`,
+          variant: "destructive",
+        });
+      }
+      
+      return successfulUploads;
+    } catch (error) {
+      console.error('Error uploading multiple photos:', error);
+      throw error;
+    }
+  };
+
+  const exportMemories = async () => {
+    try {
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        memories_count: memories.length,
+        memories: memories.map(memory => ({
+          ...memory,
+          photos: memory.photos // Include photo URLs
+        }))
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sweet-couple-tales-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: `Exported ${memories.length} memories successfully!`,
+      });
+    } catch (error) {
+      console.error('Error exporting memories:', error);
+      toast({
+        title: "Export Error",
+        description: "Failed to export memories",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchMemories();
   }, [user]);
@@ -195,6 +261,8 @@ export const useMemories = () => {
     deleteMemory,
     toggleFavorite,
     uploadPhoto,
+    uploadMultiplePhotos,
+    exportMemories,
     refetch: fetchMemories,
   };
 };
