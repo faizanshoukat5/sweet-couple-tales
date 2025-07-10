@@ -7,15 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Heart, Calendar, Tag, Search, Grid, List, Download, Bell, BellOff } from 'lucide-react';
+import { Plus, Heart, Calendar, Tag, Search, Grid, List } from 'lucide-react';
 import CreateMemoryModal from '@/components/CreateMemoryModal';
 import MemoryCard from '@/components/MemoryCard';
 import ProfileSetup from '@/components/ProfileSetup';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { memories, loading, exportMemories } = useMemories();
-  const { permission, requestPermission, sendInstantNotification } = useNotifications();
+  const { memories, loading } = useMemories();
+  const { permission, sendInstantNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -35,17 +35,6 @@ const Dashboard = () => {
   const favoriteMemories = filteredMemories.filter(memory => memory.is_favorite);
   const allTags = [...new Set(memories.flatMap(memory => memory.tags))];
 
-  const handleNotificationToggle = async () => {
-    if (permission === 'default') {
-      const granted = await requestPermission();
-      if (granted) {
-        sendInstantNotification(
-          'Notifications Enabled',
-          'You\'ll now receive memory reminders and anniversary notifications!'
-        );
-      }
-    }
-  };
 
   useEffect(() => {
     // Check for today's anniversaries and send notifications
@@ -80,63 +69,15 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-serif text-3xl font-bold text-foreground">
-                Sweet Couple Tales
-              </h1>
-              <p className="text-muted-foreground">
-                Welcome back, {user?.email?.split('@')[0]}! ✨
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={exportMemories}
-                disabled={memories.length === 0}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleNotificationToggle}
-                className={permission === 'granted' ? 'text-primary' : ''}
-              >
-                {permission === 'granted' ? (
-                  <>
-                    <Bell className="w-4 h-4 mr-2" />
-                    Notifications On
-                  </>
-                ) : (
-                  <>
-                    <BellOff className="w-4 h-4 mr-2" />
-                    Enable Notifications
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowProfileSetup(true)}
-              >
-                Profile Setup
-              </Button>
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-gradient-romantic text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Memory
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="font-serif text-3xl font-bold text-foreground mb-2">
+            Your Memory Collection
+          </h1>
+          <p className="text-muted-foreground">
+            Welcome back, {user?.email?.split('@')[0]}! You have {memories.length} beautiful memories saved ✨
+          </p>
+        </div>
         {/* Search and Filters */}
         <Card className="mb-8">
           <CardContent className="p-6">
@@ -270,6 +211,15 @@ const Dashboard = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Floating Action Button */}
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-romantic text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 z-40"
+          title="Add new memory"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
       </div>
 
       {/* Modals */}
