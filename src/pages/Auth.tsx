@@ -19,7 +19,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -67,7 +67,7 @@ const Auth = () => {
           variant: "destructive",
         });
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       toast({
