@@ -7,6 +7,7 @@ import { Heart, Calendar, Tag, MoreHorizontal, Edit, Trash2 } from 'lucide-react
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import EditMemoryModal from './EditMemoryModal';
 
 export interface MemoryCardProps {
   memory: Memory;
@@ -16,6 +17,7 @@ export interface MemoryCardProps {
 const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   const { toggleFavorite, deleteMemory } = useMemories();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const handleToggleFavorite = async () => {
     await toggleFavorite(memory.id, !memory.is_favorite);
@@ -84,7 +86,7 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowEditModal(true)}>
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
@@ -170,7 +172,7 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowEditModal(true)}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
@@ -228,6 +230,13 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
           </div>
         )}
       </CardContent>
+
+      {/* Edit Modal */}
+      <EditMemoryModal
+        memory={memory}
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+      />
     </Card>
   );
 };
