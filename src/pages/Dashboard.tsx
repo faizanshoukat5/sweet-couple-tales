@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Heart, Calendar, Tag, Search, Grid, List } from 'lucide-react';
+import { Plus, Heart, Calendar, Tag, Search, Grid, List, User } from 'lucide-react';
 import CreateMemoryModal from '@/components/CreateMemoryModal';
 import MemoryCard from '@/components/MemoryCard';
 import ProfileSetup from '@/components/ProfileSetup';
@@ -408,39 +408,80 @@ const Dashboard = () => {
           <SharedCalendar />
         </div>
 
-        {/* Floating Action Button */}
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-romantic text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 z-40"
-          title="Add new memory"
-        >
-          <Plus className="w-6 h-6" />
-        </Button>
-
-        {/* Add Chat Button/Section */}
-        <div className="fixed bottom-24 right-6 z-40">
-          <Button onClick={() => setShowChat(true)} variant="romantic">
-            Open Chat
+        {/* Quick Actions Section */}
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+          {/* Add Memory Button */}
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className="h-14 w-14 rounded-full bg-gradient-romantic text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            title="Add new memory"
+          >
+            <Plus className="w-6 h-6" />
           </Button>
+          
+          {/* Chat Button */}
+          <Button 
+            onClick={() => setShowChat(true)} 
+            variant="romantic" 
+            className="shadow-lg hover:shadow-xl transition-all px-4 py-2"
+            title="Chat with your partner"
+          >
+            💬 Chat
+          </Button>
+          
+          {/* Profile Setup Button - shown when no partner or incomplete profile */}
+          {(!partnerId || !profile?.display_name) && (
+            <Button 
+              onClick={() => setShowProfileSetup(true)} 
+              variant="outline" 
+              className="shadow-lg hover:shadow-xl transition-all bg-background border-primary px-4 py-2"
+              title="Complete your profile and select partner"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Setup Profile
+            </Button>
+          )}
         </div>
+
+        {/* Chat Modal */}
         {showChat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-lg max-w-lg w-full relative p-6">
-              <Button className="absolute top-2 right-2" size="icon" variant="ghost" onClick={() => setShowChat(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-background rounded-lg shadow-xl max-w-2xl w-full h-[600px] mx-4 relative flex flex-col">
+              <Button 
+                className="absolute top-4 right-4 z-10" 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => setShowChat(false)}
+              >
                 ✕
               </Button>
               {partnerId === undefined ? (
-                <div className="flex flex-col items-center justify-center py-8">
+                <div className="flex flex-col items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
                   <p className="text-muted-foreground">Looking for your partner...</p>
                 </div>
               ) : !partnerId ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <p className="text-muted-foreground mb-2 font-semibold text-lg">No partner found</p>
-                  <p className="text-muted-foreground text-sm">Please select your partner in Profile Setup to start chatting.</p>
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <Heart className="w-16 h-16 text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Partner Connected</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Complete your profile setup and select your partner to start chatting together!
+                  </p>
+                  <Button 
+                    onClick={() => {
+                      setShowChat(false);
+                      setShowProfileSetup(true);
+                    }}
+                    variant="romantic"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Setup Profile & Partner
+                  </Button>
                 </div>
               ) : (
-                <Chat partnerId={partnerId} />
+                <div className="flex-1 overflow-hidden">
+                  <Chat partnerId={partnerId} />
+                </div>
               )}
             </div>
           </div>
