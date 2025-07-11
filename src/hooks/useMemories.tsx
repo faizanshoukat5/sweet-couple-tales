@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 export interface Memory {
   id: string;
@@ -249,6 +250,46 @@ export const useMemories = () => {
     }
   };
 
+  const exportMemoriesAsPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      let y = 10;
+      doc.setFontSize(18);
+      doc.text('Sweet Couple Tales - Memories', 10, y);
+      y += 10;
+      doc.setFontSize(12);
+      for (let idx = 0; idx < memories.length; idx++) {
+        const memory = memories[idx];
+        if (y > 270) { doc.addPage(); y = 10; }
+        doc.setFont(undefined, 'bold');
+        doc.text(`${idx + 1}. ${memory.title}`, 10, y);
+        y += 7;
+        doc.setFont(undefined, 'normal');
+        doc.text(`Date: ${memory.memory_date}`, 10, y);
+        y += 6;
+        if (memory.content) {
+          const splitContent = doc.splitTextToSize(memory.content, 180);
+          doc.text(splitContent, 10, y);
+          y += splitContent.length * 6;
+        }
+        if (memory.photos && memory.photos.length > 0) {
+          for (const photo of memory.photos) {
+            if (y > 230) { doc.addPage(); y = 10; }
+            try {
+              const img = await toDataUrl(photo);
+              doc.addImage(img, 'JPEG', 10, y, 40, 30);
+              y += 32;
+            } catch {}
+          }
+        }
+        y += 8;
+      }
+      doc.save(`sweet-couple-tales-memories.pdf`);
+    } catch (error) {
+      toast({ title: 'PDF Export Error', description: 'Failed to export as PDF', variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     fetchMemories();
   }, [user]);
@@ -263,6 +304,22 @@ export const useMemories = () => {
     uploadPhoto,
     uploadMultiplePhotos,
     exportMemories,
-    refetch: fetchMemories,
+    exportMemoriesAsPDF,
   };
+};
+
+const toDataUrl = async (url: string) => {
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.responseType = 'blob';
+    xhr.onload = () => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(xhr.response);
+    };
+    xhr.onerror = reject;
+    xhr.send();
+  });
 };
