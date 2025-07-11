@@ -165,7 +165,7 @@ const Navigation = () => {
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem 
-                      onClick={() => {/* Profile setup functionality */}}
+                      onClick={() => navigate('/settings')}
                       className="cursor-pointer"
                     >
                       <User className="mr-2 h-4 w-4" />

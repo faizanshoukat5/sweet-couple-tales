@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, Heart, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
+import SelectPartner from '@/components/SelectPartner';
 
 interface ProfileSetupProps {
   open: boolean;
@@ -28,6 +29,8 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [partnerId, setPartnerId] = useState<string>(''); // Separate state for partnerId
+  const [avatarError, setAvatarError] = useState(false);
   
   const [profileData, setProfileData] = useState<ProfileData>({
     display_name: '',
@@ -57,6 +60,16 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
           relationship_start_date: data.relationship_start_date ? new Date(data.relationship_start_date) : null,
           avatar_url: data.avatar_url || '',
         });
+      }
+      // Fetch couple relationship
+      const { data: coupleData } = await supabase
+        .from('couples')
+        .select('*')
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+        .maybeSingle();
+      if (coupleData) {
+        const otherId = coupleData.user1_id === user.id ? coupleData.user2_id : coupleData.user1_id;
+        setPartnerId(otherId);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -100,6 +113,17 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
         });
 
       if (error) throw error;
+
+      // Couple relationship logic: upsert into couples table
+      if (partnerId) {
+        const { error: coupleError } = await supabase
+          .from('couples')
+          .upsert({
+            user1_id: user.id,
+            user2_id: partnerId,
+          }, { onConflict: 'user1_id,user2_id' });
+        if (coupleError) throw coupleError;
+      }
 
       toast({
         title: "Profile Updated",
@@ -157,6 +181,16 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
                 className="pl-10"
               />
             </div>
+          </div>
+
+          {/* Partner Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="partner_id" className="text-base font-medium">
+              Select Your Partner
+            </Label>
+            <SelectPartner
+              onSelect={(partnerId: string) => setPartnerId(partnerId)}
+            />
           </div>
 
           {/* Partner Name */}
@@ -218,21 +252,31 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
               id="avatar_url"
               type="url"
               value={profileData.avatar_url}
-              onChange={(e) => setProfileData(prev => ({ ...prev, avatar_url: e.target.value }))}
+              onChange={(e) => {
+                setProfileData(prev => ({ ...prev, avatar_url: e.target.value }));
+                setAvatarError(false);
+              }}
               placeholder="https://example.com/your-photo.jpg"
             />
-            {profileData.avatar_url && (
-              <div className="mt-2">
+            {profileData.avatar_url && !avatarError ? (
+              <div className="mt-2 flex flex-col items-center">
                 <img
                   src={profileData.avatar_url}
                   alt="Profile preview"
-                  className="w-16 h-16 rounded-full object-cover mx-auto"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  className="w-16 h-16 rounded-full object-cover mx-auto border"
+                  onError={() => setAvatarError(true)}
                 />
               </div>
-            )}
+            ) : profileData.avatar_url && avatarError ? (
+              <div className="mt-2 flex flex-col items-center">
+                <img
+                  src="/placeholder.svg"
+                  alt="Fallback avatar"
+                  className="w-16 h-16 rounded-full object-cover mx-auto border bg-muted"
+                />
+                <span className="text-xs text-muted-foreground mt-1">Image not found</span>
+              </div>
+            ) : null}
           </div>
 
           {/* Submit Buttons */}

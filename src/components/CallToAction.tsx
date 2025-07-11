@@ -7,8 +7,20 @@ const CallToAction = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleGetStarted = () => {
-    navigate(user ? '/' : '/auth');
+  const handleCreate = () => {
+    if (user) {
+      navigate('/dashboard', { state: { openCreate: true } });
+    } else {
+      navigate('/auth');
+    }
+  };
+
+  const handleViewMemories = () => {
+    if (user) {
+      navigate('/dashboard#memories');
+    } else {
+      navigate('/auth');
+    }
   };
 
   return (
@@ -32,7 +44,7 @@ const CallToAction = () => {
                   variant="romantic" 
                   size="lg" 
                   className="text-lg px-10 py-6 font-serif"
-                  onClick={handleGetStarted}
+                  onClick={handleCreate}
                 >
                   {user ? "Create Your First Memory" : "Create Account - It's Free"}
                 </Button>
@@ -40,7 +52,7 @@ const CallToAction = () => {
                   variant="outline" 
                   size="lg" 
                   className="text-lg px-10 py-6 border-primary text-primary hover:bg-primary hover:text-white"
-                  onClick={handleGetStarted}
+                  onClick={handleViewMemories}
                 >
                   {user ? "View My Memories" : "Sign In"}
                 </Button>
