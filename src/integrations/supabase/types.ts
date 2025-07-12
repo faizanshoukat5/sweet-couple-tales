@@ -106,16 +106,28 @@ export type Database = {
       couples: {
         Row: {
           id: string
+          requested_at: string
+          requested_by: string
+          responded_at: string | null
+          status: string
           user1_id: string
           user2_id: string
         }
         Insert: {
           id?: string
+          requested_at?: string
+          requested_by: string
+          responded_at?: string | null
+          status?: string
           user1_id: string
           user2_id: string
         }
         Update: {
           id?: string
+          requested_at?: string
+          requested_by?: string
+          responded_at?: string | null
+          status?: string
           user1_id?: string
           user2_id?: string
         }
