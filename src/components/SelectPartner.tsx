@@ -41,34 +41,63 @@ const SelectPartner = ({ onSelect }: { onSelect: (partnerId: string) => void }) 
   const handleSelect = async () => {
     setError(null);
     setSuccess(null);
-    if (!selectedId) return;
-    // Prevent duplicate couple relationships
-    const { data: existing, error: fetchError } = await supabase
-      .from("couples")
-      .select("*")
-      .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-      .or(`user1_id.eq.${selectedId},user2_id.eq.${selectedId}`);
-    if (fetchError) {
-      console.error('Fetch couples error:', fetchError);
-      setError("Failed to check existing relationship.");
+    
+    if (!selectedId || !user?.id) {
+      setError("Please select a partner and ensure you're logged in.");
       return;
     }
-    if (existing && existing.length > 0) {
-      setError("You already have a partner relationship set.");
+
+    if (selectedId === user.id) {
+      setError("You cannot select yourself as a partner.");
       return;
     }
-    // Upsert couple relationship
-    const { error: upsertError } = await supabase.from("couples").upsert({
-      user1_id: user.id,
-      user2_id: selectedId,
-    }, { onConflict: 'user1_id,user2_id' });
-    if (upsertError) {
-      console.error('Upsert couples error:', upsertError);
-      setError(upsertError.message || "Failed to set partner.");
-      return;
+
+    setLoading(true);
+
+    try {
+      // Check for existing couple relationship (either direction)
+      const { data: existing, error: fetchError } = await supabase
+        .from("couples")
+        .select("*")
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${selectedId}),and(user1_id.eq.${selectedId},user2_id.eq.${user.id})`);
+
+      if (fetchError) {
+        console.error('Fetch couples error:', fetchError);
+        setError("Failed to check existing relationship.");
+        setLoading(false);
+        return;
+      }
+
+      if (existing && existing.length > 0) {
+        setError("You already have a partner relationship with this person.");
+        setLoading(false);
+        return;
+      }
+
+      // Insert new couple relationship
+      const { error: insertError } = await supabase
+        .from("couples")
+        .insert({
+          user1_id: user.id,
+          user2_id: selectedId,
+        });
+
+      if (insertError) {
+        console.error('Insert couples error:', insertError);
+        setError(insertError.message || "Failed to set partner.");
+        setLoading(false);
+        return;
+      }
+
+      setSuccess("Partner selected successfully! 🎉");
+      onSelect(selectedId);
+      
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setSuccess("Partner set successfully!");
-    onSelect(selectedId);
   };
 
   if (!user) {
