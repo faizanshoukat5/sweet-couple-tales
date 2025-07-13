@@ -23,7 +23,7 @@ export const useAlbumMemories = (albumId: string) => {
       .from('album_memories')
       .select('memory_id')
       .eq('album_id', albumId);
-    if (!error) setMemoryIds(data?.map((row: any) => row.memory_id) || []);
+    if (!error) setMemoryIds(data?.map((row: AlbumMemory) => row.memory_id) || []);
     setLoading(false);
   };
 
@@ -44,7 +44,7 @@ export const useAlbumMemories = (albumId: string) => {
     if (!error) setMemoryIds((prev) => prev.filter(id => id !== memoryId));
   };
 
-  useEffect(() => { fetchAlbumMemories(); }, [user, albumId]);
+  useEffect(() => { fetchAlbumMemories(); }, [user, albumId, fetchAlbumMemories]);
 
   return { memoryIds, loading, addMemoryToAlbum, removeMemoryFromAlbum };
 };

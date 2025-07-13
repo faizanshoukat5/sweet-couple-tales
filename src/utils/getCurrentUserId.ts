@@ -8,7 +8,9 @@ export function getCurrentUserId(): string | null {
   return null;
 }
 
-export function getCurrentUserIdFromContext(): string | null {
+// This function should only be called inside React components or hooks
+// Use getCurrentUserId() for non-React contexts
+export function useCurrentUserIdFromContext(): string | null {
   // This function should be called inside a React component or hook
   const { user } = useAuth();
   return user?.id || null;

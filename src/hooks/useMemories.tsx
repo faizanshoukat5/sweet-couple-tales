@@ -279,7 +279,9 @@ export const useMemories = () => {
               const img = await toDataUrl(photo);
               doc.addImage(img, 'JPEG', 10, y, 40, 30);
               y += 32;
-            } catch {}
+            } catch {
+              // Skip this image if it fails to load
+            }
           }
         }
         y += 8;
@@ -292,7 +294,7 @@ export const useMemories = () => {
 
   useEffect(() => {
     fetchMemories();
-  }, [user]);
+  }, [user, fetchMemories]);
 
   return {
     memories,

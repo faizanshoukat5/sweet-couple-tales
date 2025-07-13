@@ -55,7 +55,7 @@ const SharedCalendar = () => {
     const list: { id: string; title: string; type: string; date: string }[] = [];
     dates.forEach(d => {
       const dateObj = new Date(d.date);
-      let nextDate = new Date(dateObj);
+      const nextDate = new Date(dateObj);
       if (d.type === 'anniversary' || d.type === 'birthday') {
         nextDate.setFullYear(today.getFullYear());
         if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
@@ -66,7 +66,7 @@ const SharedCalendar = () => {
       }
     });
     return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [dates]);
+  }, [dates, today]);
 
   const selectedEvents = selected ? eventsByDay.get(selected.toDateString()) : undefined;
 

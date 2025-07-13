@@ -28,7 +28,7 @@ const SelectPartner = ({ onSelect }: { onSelect: (partnerId: string) => void }) 
         .neq("user_id", user.id); // Exclude current user
 
       if (!error && Array.isArray(data)) {
-        setUsers(data.filter((u: any) => u && typeof u.user_id === 'string' && typeof u.email === 'string'));
+        setUsers(data.filter((u: User) => u && typeof u.user_id === 'string' && typeof u.email === 'string'));
       } else {
         setUsers([]);
         setError("Failed to load users.");
@@ -36,7 +36,7 @@ const SelectPartner = ({ onSelect }: { onSelect: (partnerId: string) => void }) 
       setLoading(false);
     };
     fetchUsers();
-  }, [user && user.id]);
+  }, [user]);
 
   const handleSelect = async () => {
     setError(null);

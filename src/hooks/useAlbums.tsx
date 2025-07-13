@@ -47,7 +47,7 @@ export const useAlbums = () => {
     if (!error) setAlbums((prev) => prev.filter(a => a.id !== id));
   };
 
-  useEffect(() => { fetchAlbums(); }, [user]);
+  useEffect(() => { fetchAlbums(); }, [user, fetchAlbums]);
 
   return { albums, loading, addAlbum, deleteAlbum };
 };
@@ -74,7 +74,9 @@ export const useAlbumAsPDF = (album, albumMemories, albumPhotos, signedUrls, mem
           const img = await toDataUrl(signedUrls[photo.id] || photo.url);
           doc.addImage(img, 'JPEG', 10, y, 40, 30);
           y += 32;
-        } catch {}
+        } catch {
+          // Skip this image if it fails to load
+        }
       }
       y += 8;
       doc.setFontSize(14);
@@ -103,7 +105,9 @@ export const useAlbumAsPDF = (album, albumMemories, albumPhotos, signedUrls, mem
               const img = await toDataUrl(photo);
               doc.addImage(img, 'JPEG', 10, y, 40, 30);
               y += 32;
-            } catch {}
+            } catch {
+              // Skip this image if it fails to load
+            }
           }
         }
         y += 8;

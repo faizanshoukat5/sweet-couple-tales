@@ -5,7 +5,16 @@ import { useMemories } from "@/hooks/useMemories";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 
-const PreviewMemoryCard = ({ memory }: { memory: any }) => {
+interface Memory {
+  id: string;
+  title: string;
+  content?: string;
+  memory_date: string;
+  photos?: string[];
+  is_favorite?: boolean;
+}
+
+const PreviewMemoryCard = ({ memory }: { memory: Memory }) => {
   return (
     <Card className="group hover:shadow-romantic transition-all duration-300 hover:-translate-y-1 bg-card border-border/50 overflow-hidden">
       {memory.photos && memory.photos.length > 0 && (
