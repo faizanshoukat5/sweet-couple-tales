@@ -142,21 +142,17 @@ const Dashboard = () => {
       if (!user) return;
       const { data, error } = await supabase
         .from('couples')
-        .select('user1_id, user2_id')
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-      console.log('Couple fetch result:', { data, error });
+        .select('user1_id, user2_id, status')
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+      
       if (!error && Array.isArray(data) && data.length > 0) {
-        // Find the first row where the other user is not the current user
-        const row = data.find(
-          (row) => row.user1_id === user.id || row.user2_id === user.id
-        );
-        if (row) {
-          const otherId = row.user1_id === user.id ? row.user2_id : row.user1_id;
-          setPartnerId(otherId);
-          return;
-        }
+        const row = data[0];
+        const otherId = row.user1_id === user.id ? row.user2_id : row.user1_id;
+        setPartnerId(otherId);
+      } else {
+        setPartnerId(null);
       }
-      setPartnerId(null);
     };
     fetchPartnerId();
   }, [user]);

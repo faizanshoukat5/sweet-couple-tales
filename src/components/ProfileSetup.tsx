@@ -121,6 +121,8 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
           .upsert({
             user1_id: user.id,
             user2_id: partnerId,
+            requested_by: user.id,
+            status: 'accepted'
           }, { onConflict: 'user1_id,user2_id' });
         if (coupleError) throw coupleError;
       }
