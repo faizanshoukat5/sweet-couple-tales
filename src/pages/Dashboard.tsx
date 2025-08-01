@@ -17,7 +17,7 @@ import ImportantDates from '@/components/ImportantDates';
 import AlbumsList from '@/components/AlbumsList';
 import AlbumBrowser from '@/components/AlbumBrowser';
 import SharedCalendar from '@/components/SharedCalendar';
-import Chat from '@/components/Chat';
+import EnhancedChat from '@/components/EnhancedChat';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -476,7 +476,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="flex-1 overflow-hidden">
-                  <Chat partnerId={partnerId} />
+                  <EnhancedChat partnerId={partnerId} />
                 </div>
               )}
             </div>
