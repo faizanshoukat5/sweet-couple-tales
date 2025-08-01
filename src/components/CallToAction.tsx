@@ -54,7 +54,7 @@ const CallToAction = () => {
                   className="text-lg px-10 py-6 border-primary text-primary hover:bg-primary hover:text-white"
                   onClick={handleViewMemories}
                 >
-                  {user ? "View My Memories" : "Sign In"}
+                  {user ? "View My Dashboard" : "Sign In"}
                 </Button>
               </div>
               

@@ -51,7 +51,7 @@ const Navigation = () => {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/dashboard', label: 'My Memories', icon: Heart, requireAuth: true },
+    { path: '/dashboard', label: 'My Dashboard', icon: Heart, requireAuth: true },
   ];
 
   const getInitials = (email: string) => {
@@ -161,7 +161,7 @@ const Navigation = () => {
                       className="cursor-pointer"
                     >
                       <Heart className="mr-2 h-4 w-4" />
-                      My Memories
+                      My Dashboard
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem 

@@ -140,17 +140,24 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchPartnerId = async () => {
       if (!user) return;
+      
+      console.log('Fetching partner for user:', user.id);
+      
       const { data, error } = await supabase
         .from('couples')
         .select('user1_id, user2_id, status')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .eq('status', 'accepted');
       
+      console.log('Couples query result:', data, error);
+      
       if (!error && Array.isArray(data) && data.length > 0) {
         const row = data[0];
         const otherId = row.user1_id === user.id ? row.user2_id : row.user1_id;
+        console.log('Setting partner ID to:', otherId);
         setPartnerId(otherId);
       } else {
+        console.log('No partner found or error occurred');
         setPartnerId(null);
       }
     };
@@ -186,91 +193,102 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center gap-4">
-          {/* Avatar Display */}
-          <div className="relative">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-100">
+      <div className="container mx-auto px-4 py-10">
+        {/* Profile & Partner Section */}
+        <div className="mb-10 flex flex-col md:flex-row items-center gap-8 md:gap-12 bg-white/80 rounded-2xl shadow-lg p-6 md:p-10 border border-primary/10">
+          <div className="relative group">
             <img
               src={profile?.avatar_url || '/placeholder.svg'}
               alt="Your profile avatar"
-              className="w-16 h-16 rounded-full object-cover border-2 border-primary bg-muted"
+              className="w-24 h-24 rounded-full object-cover border-4 border-primary shadow-md group-hover:scale-105 transition-transform bg-muted"
               onError={e => { e.currentTarget.src = '/placeholder.svg'; }}
               style={{ transition: 'box-shadow 0.2s' }}
             />
+            <span className="absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white bg-green-400 shadow-md" title="You are online"></span>
           </div>
-          <div>
-            <h1 className="font-serif text-3xl font-bold text-foreground mb-2">
+          <div className="flex-1">
+            <h1 className="font-serif text-4xl font-extrabold text-primary mb-2 flex items-center gap-2">
+              <Heart className="w-7 h-7 text-rose-400 animate-pulse" />
               Your Memory Collection
             </h1>
-            <p className="text-muted-foreground">
-              Welcome back, {profile?.display_name || user?.email?.split('@')[0]}! You have {memories.length} beautiful memories saved ✨
+            <p className="text-lg text-muted-foreground mb-2">
+              Welcome back, <span className="font-semibold text-primary">{profile?.display_name || user?.email?.split('@')[0]}</span>!<br />
+              <span className="text-base">You have <span className="font-bold text-rose-500">{memories.length}</span> beautiful memories saved ✨</span>
             </p>
             {partnerProfile && (
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-3 mt-3 bg-gradient-to-r from-rose-100 to-pink-50 rounded-xl px-4 py-2 shadow-sm">
                 <span className="text-sm text-muted-foreground">Partner:</span>
                 {partnerProfile.avatar_url && (
                   <img
                     src={partnerProfile.avatar_url}
                     alt="Partner avatar"
-                    className="w-8 h-8 rounded-full object-cover border bg-muted"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-rose-300 bg-muted shadow"
                     onError={e => { e.currentTarget.src = '/placeholder.svg'; }}
+                    title={partnerProfile.display_name || partnerProfile.email}
                   />
                 )}
-                <span className="text-base font-medium text-foreground">
+                <span className="text-base font-semibold text-rose-600">
                   {partnerProfile.display_name || partnerProfile.email}
                 </span>
+                {/* Example: show online badge (replace with real status if available) */}
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Online</span>
               </div>
             )}
           </div>
         </div>
         {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
+        <Card className="mb-10 shadow-xl border-0 bg-white/90">
+          <CardContent className="p-8">
+            <div className="flex flex-col md:flex-row gap-6 items-center">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rose-300 w-5 h-5" />
                 <Input
                   placeholder="Search your memories..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-12 py-3 rounded-xl border-rose-200 focus:ring-rose-300 text-lg"
                 />
               </div>
-              
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
+                  variant={viewMode === 'grid' ? 'romantic' : 'outline'}
+                  size="icon"
                   onClick={() => setViewMode('grid')}
+                  className="rounded-full"
+                  title="Grid view"
                 >
-                  <Grid className="w-4 h-4" />
+                  <Grid className="w-5 h-5" />
                 </Button>
                 <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
+                  variant={viewMode === 'list' ? 'romantic' : 'outline'}
+                  size="icon"
                   onClick={() => setViewMode('list')}
+                  className="rounded-full"
+                  title="List view"
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-5 h-5" />
                 </Button>
               </div>
             </div>
-
             {allTags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-6 flex flex-wrap gap-2">
+                <span className="text-sm text-muted-foreground mr-2">Tags:</span>
                 <Button
-                  variant={selectedTag === null ? 'default' : 'outline'}
+                  variant={selectedTag === null ? 'romantic' : 'outline'}
                   size="sm"
                   onClick={() => setSelectedTag(null)}
+                  className="rounded-full px-4"
                 >
                   All
                 </Button>
                 {allTags.map(tag => (
                   <Button
                     key={tag}
-                    variant={selectedTag === tag ? 'default' : 'outline'}
+                    variant={selectedTag === tag ? 'romantic' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                    className="rounded-full px-4"
                   >
                     <Tag className="w-3 h-3 mr-1" />
                     {tag}
@@ -284,31 +302,31 @@ const Dashboard = () => {
         {/* Memory Tabs */}
         <div className="memory-section">
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8">
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                All Memories ({filteredMemories.length})
+            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-10 bg-rose-50 rounded-xl shadow-inner">
+              <TabsTrigger value="all" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
+                <Calendar className="w-5 h-5" />
+                All Memories <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{filteredMemories.length}</span>
               </TabsTrigger>
-              <TabsTrigger value="favorites" className="flex items-center gap-2">
-                <Heart className="w-4 h-4" />
-                Favorites ({favoriteMemories.length})
+              <TabsTrigger value="favorites" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
+                <Heart className="w-5 h-5" />
+                Favorites <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{favoriteMemories.length}</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
               {filteredMemories.length === 0 ? (
-                <Card>
+                <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
                   <CardContent className="p-12 text-center">
-                    <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No memories found</h3>
+                    <Calendar className="w-16 h-16 text-rose-200 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold mb-2 text-rose-600">No memories found</h3>
                     <p className="text-muted-foreground mb-6">
                       {memories.length === 0 
                         ? "Start creating your beautiful love story by adding your first memory!"
                         : "Try adjusting your search or filters to find what you're looking for."
                       }
                     </p>
-                    <Button onClick={() => setShowCreateModal(true)}>
-                      <Plus className="w-4 h-4 mr-2" />
+                    <Button onClick={() => setShowCreateModal(true)} variant="romantic" className="px-6 py-3 text-lg rounded-full">
+                      <Plus className="w-5 h-5 mr-2" />
                       Create Your First Memory
                     </Button>
                   </CardContent>
@@ -316,8 +334,8 @@ const Dashboard = () => {
               ) : (
                 <div className={
                   viewMode === 'grid' 
-                    ? "grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "space-y-4"
+                    ? "grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    : "space-y-6"
                 }>
                   {filteredMemories.map(memory => (
                     <MemoryCard 
@@ -332,10 +350,10 @@ const Dashboard = () => {
 
             <TabsContent value="favorites">
               {favoriteMemories.length === 0 ? (
-                <Card>
+                <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
                   <CardContent className="p-12 text-center">
-                    <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No favorite memories yet</h3>
+                    <Heart className="w-16 h-16 text-rose-200 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold mb-2 text-rose-600">No favorite memories yet</h3>
                     <p className="text-muted-foreground">
                       Mark your most special memories as favorites by clicking the heart icon!
                     </p>
@@ -344,8 +362,8 @@ const Dashboard = () => {
               ) : (
                 <div className={
                   viewMode === 'grid' 
-                    ? "grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "space-y-4"
+                    ? "grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    : "space-y-6"
                 }>
                   {favoriteMemories.map(memory => (
                     <MemoryCard 
@@ -361,127 +379,170 @@ const Dashboard = () => {
         </div>
 
         {/* Goals List */}
-        <div className="mt-8" id="goals">
-          <h2 className="font-serif text-2xl font-bold text-foreground mb-4">
-            Your Shared Goals & Bucket List
-          </h2>
-          <GoalsList />
+        <div className="mt-14" id="goals">
+          <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
+            <CardHeader className="flex flex-row items-center gap-3 mb-2">
+              <span className="bg-rose-100 text-rose-600 rounded-full p-2"><Plus className="w-5 h-5" /></span>
+              <CardTitle className="font-serif text-2xl font-bold text-rose-600">Your Shared Goals & Bucket List</CardTitle>
+            </CardHeader>
+            <GoalsList />
+          </Card>
         </div>
 
         {/* Important Dates */}
-        <div className="mt-8" id="dates">
-          <h2 className="font-serif text-2xl font-bold text-foreground mb-4">
-            Important Dates & Anniversaries
-          </h2>
-          <ImportantDates />
+        <div className="mt-14" id="dates">
+          <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
+            <CardHeader className="flex flex-row items-center gap-3 mb-2">
+              <span className="bg-rose-100 text-rose-600 rounded-full p-2"><Calendar className="w-5 h-5" /></span>
+              <CardTitle className="font-serif text-2xl font-bold text-rose-600">Important Dates & Anniversaries</CardTitle>
+            </CardHeader>
+            <ImportantDates />
+          </Card>
         </div>
 
-        {/* Albums List */}
-        <div className="mt-8" id="albums">
-          <h2 className="font-serif text-2xl font-bold text-foreground mb-4">
-            Your Photo Albums
-          </h2>
-          <div className="flex items-center gap-4 mb-4">
-            <AlbumsList />
-            <Button variant="outline" onClick={() => setShowAlbumBrowser(true)}>
-              View Albums
-            </Button>
-          </div>
-          {showAlbumBrowser && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full relative p-6">
-                <Button className="absolute top-2 right-2" size="icon" variant="ghost" onClick={() => setShowAlbumBrowser(false)}>
-                  ✕
+        {/* Albums List - Enhanced */}
+        <div className="mt-14" id="albums">
+          <div className="relative bg-gradient-to-br from-rose-50 via-white to-pink-100 rounded-2xl shadow-xl border-0 p-0 overflow-hidden">
+            {/* Decorative background */}
+            <div className="absolute inset-0 pointer-events-none opacity-30" style={{background: 'radial-gradient(circle at 80% 20%, #fbb6ce 0%, transparent 70%)'}} />
+            <div className="relative z-10 p-8 pb-4">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="bg-rose-200 text-rose-700 rounded-full p-3 shadow"><Grid className="w-7 h-7" /></span>
+                <div>
+                  <h2 className="font-serif text-3xl font-extrabold text-rose-600 mb-1">Your Photo Albums</h2>
+                  <p className="text-rose-500 text-base font-medium">Relive your favorite moments together</p>
+                </div>
+              </div>
+              {/* Album carousel preview */}
+              <div className="overflow-x-auto pb-2 mb-6 -mx-2">
+                <div className="flex gap-6 px-2 min-w-[320px]">
+                  {/* Replace with real album cards if available */}
+                  <AlbumsList cardStyle="carousel" />
+                  {/* Example placeholder cards if AlbumsList is empty */}
+                  {/*
+                  <div className="w-40 h-48 bg-white rounded-xl shadow flex flex-col items-center justify-center border border-rose-100 hover:shadow-lg transition-all cursor-pointer">
+                    <img src="/placeholder.svg" alt="Album" className="w-24 h-24 object-cover rounded-lg mb-2" />
+                    <span className="font-semibold text-rose-600">Anniversary</span>
+                    <span className="text-xs text-muted-foreground mt-1">12 photos</span>
+                  </div>
+                  */}
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="romantic" onClick={() => setShowAlbumBrowser(true)} className="rounded-full px-7 py-3 text-lg font-semibold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
+                  <Grid className="w-5 h-5 mr-1" />
+                  View All Albums
                 </Button>
-                <AlbumBrowser />
               </div>
             </div>
-          )}
+            {showAlbumBrowser && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full relative p-6">
+                  <Button className="absolute top-2 right-2" size="icon" variant="ghost" onClick={() => setShowAlbumBrowser(false)}>
+                    ✕
+                  </Button>
+                  <AlbumBrowser />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Shared Calendar */}
-        <div className="mt-8" id="calendar">
-          <SharedCalendar />
+        <div className="mt-14" id="calendar">
+          <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
+            <CardHeader className="flex flex-row items-center gap-3 mb-2">
+              <span className="bg-rose-100 text-rose-600 rounded-full p-2"><Calendar className="w-5 h-5" /></span>
+              <CardTitle className="font-serif text-2xl font-bold text-rose-600">Shared Calendar</CardTitle>
+            </CardHeader>
+            <SharedCalendar />
+          </Card>
         </div>
 
         {/* Quick Actions Section */}
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        <div className="fixed bottom-8 right-8 z-40 flex flex-col gap-4 items-end">
           {/* Add Memory Button */}
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="h-14 w-14 rounded-full bg-gradient-romantic text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-            title="Add new memory"
-          >
-            <Plus className="w-6 h-6" />
-          </Button>
-          
+          <div className="group relative">
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="h-16 w-16 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 text-white shadow-2xl hover:scale-110 transition-all duration-200 flex items-center justify-center"
+              title="Add new memory"
+            >
+              <Plus className="w-7 h-7" />
+            </Button>
+            <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-rose-500 px-4 py-2 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-semibold">Add Memory</span>
+          </div>
           {/* Chat Button */}
-          <Button 
-            onClick={() => setShowChat(true)} 
-            variant="romantic" 
-            className="shadow-lg hover:shadow-xl transition-all px-4 py-2"
-            title="Chat with your partner"
-          >
-            💬 Chat
-          </Button>
-          
+          <div className="group relative">
+            <Button 
+              onClick={() => setShowChat(true)} 
+              variant="romantic" 
+              className="rounded-full px-6 py-3 shadow-lg hover:scale-105 transition-all text-lg font-semibold flex items-center gap-2"
+              title="Chat with your partner"
+            >
+              💬 Chat
+            </Button>
+            <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-rose-500 px-4 py-2 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-semibold">Open Chat</span>
+          </div>
           {/* Profile Setup Button - shown when no partner or incomplete profile */}
           {(!partnerId || !profile?.display_name) && (
-            <Button 
-              onClick={() => setShowProfileSetup(true)} 
-              variant="outline" 
-              className="shadow-lg hover:shadow-xl transition-all bg-background border-primary px-4 py-2"
-              title="Complete your profile and select partner"
-            >
-              <User className="w-4 h-4 mr-2" />
-              Setup Profile
-            </Button>
+            <div className="group relative">
+              <Button 
+                onClick={() => setShowProfileSetup(true)} 
+                variant="outline" 
+                className="rounded-full px-6 py-3 shadow-lg hover:scale-105 transition-all bg-background border-primary text-rose-600 font-semibold flex items-center gap-2"
+                title="Complete your profile and select partner"
+              >
+                <User className="w-5 h-5 mr-2" />
+                Setup Profile
+              </Button>
+              <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-rose-500 px-4 py-2 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-semibold">Setup Profile</span>
+            </div>
           )}
         </div>
 
-        {/* Chat Modal */}
-        {showChat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-background rounded-lg shadow-xl max-w-2xl w-full h-[600px] mx-4 relative flex flex-col">
-              <Button 
-                className="absolute top-4 right-4 z-10" 
-                size="sm" 
-                variant="ghost" 
-                onClick={() => setShowChat(false)}
-              >
-                ✕
-              </Button>
-              {partnerId === undefined ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-                  <p className="text-muted-foreground">Looking for your partner...</p>
-                </div>
-              ) : !partnerId ? (
-                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                  <Heart className="w-16 h-16 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No Partner Connected</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Complete your profile setup and select your partner to start chatting together!
-                  </p>
-                  <Button 
-                    onClick={() => {
-                      setShowChat(false);
-                      setShowProfileSetup(true);
-                    }}
-                    variant="romantic"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Setup Profile & Partner
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-hidden">
-                  <EnhancedChat partnerId={partnerId} />
-                </div>
-              )}
-            </div>
+        {/* Chat Modal - always mounted, toggled with CSS */}
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${showChat ? '' : 'hidden'}`}>
+          <div className="bg-background rounded-lg shadow-xl max-w-2xl w-full h-[600px] mx-4 relative flex flex-col">
+            <Button 
+              className="absolute top-4 right-4 z-10" 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setShowChat(false)}
+            >
+              ✕
+            </Button>
+            {partnerId === undefined ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                <p className="text-muted-foreground">Looking for your partner...</p>
+              </div>
+            ) : !partnerId ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <Heart className="w-16 h-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Partner Connected</h3>
+                <p className="text-muted-foreground mb-6">
+                  Complete your profile setup and select your partner to start chatting together!
+                </p>
+                <Button 
+                  onClick={() => {
+                    setShowChat(false);
+                    setShowProfileSetup(true);
+                  }}
+                  variant="romantic"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Setup Profile & Partner
+                </Button>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-hidden">
+                {console.log('Rendering chat with partnerId:', partnerId)}
+                <EnhancedChat partnerId={partnerId} />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modals */}

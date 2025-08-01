@@ -226,21 +226,30 @@ export type Database = {
       messages: {
         Row: {
           content: string
+          delivered_at: string | null
           id: string
+          is_read: boolean | null
+          read_at: string | null
           receiver_id: string
           sender_id: string
           timestamp: string
         }
         Insert: {
           content: string
+          delivered_at?: string | null
           id?: string
+          is_read?: boolean | null
+          read_at?: string | null
           receiver_id: string
           sender_id: string
           timestamp?: string
         }
         Update: {
           content?: string
+          delivered_at?: string | null
           id?: string
+          is_read?: boolean | null
+          read_at?: string | null
           receiver_id?: string
           sender_id?: string
           timestamp?: string

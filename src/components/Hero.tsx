@@ -55,7 +55,7 @@ const Hero = () => {
                     className="text-lg px-8 py-6 font-serif"
                     onClick={handleGetStarted}
                   >
-                    View My Memories
+                    View My Dashboard
                   </Button>
                   <Button 
                     variant="outline" 

@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic } from "lucide-react";
+import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -34,9 +34,40 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Swipe/slide-to-reply gesture handlers
+  const swipeData = useRef<{startX: number, triggered: boolean}>({startX: 0, triggered: false});
+  const handleMessageTouchStart = (e: React.TouchEvent, msg: Message) => {
+    swipeData.current = { startX: e.touches[0].clientX, triggered: false };
+  };
+  const handleMessageTouchMove = (e: React.TouchEvent, msg: Message) => {
+    const dx = e.touches[0].clientX - swipeData.current.startX;
+    if (!swipeData.current.triggered && dx > 60) {
+      setReplyToMessage(msg);
+      swipeData.current.triggered = true;
+    }
+  };
+  const handleMessageMouseDown = (e: React.MouseEvent, msg: Message) => {
+    swipeData.current = { startX: e.clientX, triggered: false };
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - swipeData.current.startX;
+      if (!swipeData.current.triggered && dx > 60) {
+        setReplyToMessage(msg);
+        swipeData.current.triggered = true;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      }
+    };
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   // UUID validation function
   const isValidUUID = (id: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
@@ -45,36 +76,44 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const markMessagesAsRead = useCallback(async () => {
     if (!user?.id || !partnerId) return;
     
-    const unreadMessages = messages.filter(
-      msg => msg.sender_id === partnerId && !msg.is_read
-    );
+    // Query for unread messages directly from database instead of using state
+    const { data: unreadMessages, error: fetchError } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('sender_id', partnerId)
+      .eq('receiver_id', user.id)
+      .eq('is_read', false);
     
-    if (unreadMessages.length > 0) {
-      const messageIds = unreadMessages.map(msg => msg.id);
-      const { error } = await supabase
-        .from('messages')
-        .update({ 
-          is_read: true, 
-          read_at: new Date().toISOString() 
-        } as any)
-        .in('id', messageIds);
-      
-      if (!error) {
-        setMessages(prev => prev.map(msg => 
-          messageIds.includes(msg.id) 
-            ? { ...msg, is_read: true, read_at: new Date().toISOString() }
-            : msg
-        ));
-        setUnreadCount(0);
-      }
+    if (fetchError || !unreadMessages || unreadMessages.length === 0) {
+      setUnreadCount(0);
+      return;
     }
-  }, [user?.id, partnerId, messages]);
+    
+    const messageIds = unreadMessages.map(msg => msg.id);
+    const { error } = await supabase
+      .from('messages')
+      .update({ 
+        is_read: true, 
+        read_at: new Date().toISOString() 
+      })
+      .in('id', messageIds);
+    
+    if (!error) {
+      setMessages(prev => prev.map(msg => 
+        messageIds.includes(msg.id) 
+          ? { ...msg, is_read: true, read_at: new Date().toISOString() }
+          : msg
+      ));
+      setUnreadCount(0);
+    }
+  }, [user?.id, partnerId]); // Removed messages dependency
 
   // Send typing indicator
   const sendTypingIndicator = useCallback(async (typing: boolean) => {
     if (!user?.id || !isValidUUID(partnerId)) return;
     
-    const channel = supabase.channel(`typing-${user.id}-${partnerId}`);
+    const channelName = `typing-${[user.id, partnerId].sort().join('-')}`;
+    const channel = supabase.channel(channelName);
     await channel.send({
       type: 'broadcast',
       event: 'typing',
@@ -106,10 +145,13 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     }, 2000);
   }, [isTyping, sendTypingIndicator]);
 
-  // Fetch messages
+  // Fetch messages (with polling fallback for real-time)
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
     const fetchMessages = async () => {
       if (!user?.id || !isValidUUID(partnerId)) return;
+      
+      console.log('Fetching messages between:', user.id, 'and', partnerId);
       
       const { data, error } = await supabase
         .from("messages")
@@ -118,6 +160,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         .order("timestamp", { ascending: true });
       
       if (!error && data) {
+        console.log('Fetched messages:', data);
         setMessages(data as Message[]);
         
         // Count unread messages
@@ -128,65 +171,97 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         // Mark messages as read after a delay
         setTimeout(() => markMessagesAsRead(), 1000);
+      } else {
+        console.error('Error fetching messages:', error);
       }
     };
-    
     fetchMessages();
-  }, [user?.id, partnerId, markMessagesAsRead]);
+    intervalId = setInterval(fetchMessages, 2000); // Poll every 2 seconds
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user?.id, partnerId]);
 
   // Subscribe to new messages
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
 
+    // Create consistent channel name for both users
+    const channelName = `messages-${[user.id, partnerId].sort().join('-')}`;
     const messageChannel = supabase
-      .channel("messages-chat")
+      .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        { 
+          event: "INSERT", 
+          schema: "public", 
+          table: "messages",
+          filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id}))`
+        },
         (payload) => {
+          console.log('New message received:', payload);
+          console.log('Current user ID:', user.id);
+          console.log('Partner ID:', partnerId);
           const msg = payload.new as Message;
-          if (
-            (msg.sender_id === user.id && msg.receiver_id === partnerId) ||
-            (msg.sender_id === partnerId && msg.receiver_id === user.id)
-          ) {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === msg.id)) return prev;
-              return [...prev, msg];
-            });
-            
-            // If message is from partner, increment unread count
-            if (msg.sender_id === partnerId) {
-              setUnreadCount(prev => prev + 1);
-              // Auto-mark as read after delay
-              setTimeout(() => markMessagesAsRead(), 2000);
+          console.log('Message sender:', msg.sender_id, 'Message receiver:', msg.receiver_id);
+          
+          setMessages((prev) => {
+            const existingIndex = prev.findIndex((m) => m.id === msg.id);
+            if (existingIndex !== -1) {
+              // Replace the message if it exists (for updates)
+              const updated = [...prev];
+              updated[existingIndex] = msg;
+              console.log('Message updated in state');
+              return updated;
             }
+            // Always return a new array reference
+            console.log('Adding new message to state');
+            return [...prev, msg];
+          });
+          
+          // If message is from partner, increment unread count
+          if (msg.sender_id === partnerId) {
+            setUnreadCount(prev => prev + 1);
+            // Auto-mark as read after delay
+            setTimeout(() => markMessagesAsRead(), 2000);
           }
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages" },
+        { 
+          event: "UPDATE", 
+          schema: "public", 
+          table: "messages",
+          filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id}))`
+        },
         (payload) => {
+          console.log('Message updated:', payload);
           const updatedMsg = payload.new as Message;
           setMessages(prev => prev.map(msg => 
             msg.id === updatedMsg.id ? updatedMsg : msg
           ));
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log(`Message subscription status for channel ${channelName}:`, status, err);
+      });
 
     return () => {
+      console.log(`Removing message channel: ${channelName}`);
       supabase.removeChannel(messageChannel);
     };
-  }, [user?.id, partnerId, markMessagesAsRead]);
+  }, [user?.id, partnerId]); // Removed markMessagesAsRead dependency
 
   // Subscribe to typing indicators
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
 
+    const channelName = `typing-${[user.id, partnerId].sort().join('-')}`;
     const typingChannel = supabase
-      .channel(`typing-${partnerId}-${user.id}`)
+      .channel(channelName)
       .on('broadcast', { event: 'typing' }, (payload) => {
+        console.log('Typing indicator received:', payload);
         if (payload.payload.user_id === partnerId) {
           setPartnerTyping(payload.payload.is_typing);
           
@@ -195,53 +270,84 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           }
         }
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('Typing subscription status:', status, err);
+      });
 
     return () => {
+      console.log('Removing typing channel');
       supabase.removeChannel(typingChannel);
     };
   }, [user?.id, partnerId]);
 
-  // Subscribe to online presence
+  // Subscribe to online presence (robust)
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
 
-    const presenceChannel = supabase
-      .channel(`presence-${partnerId}`)
+    const presenceChannelName = `presence-${[user.id, partnerId].sort().join('-')}`;
+    const presenceChannel = supabase.channel(presenceChannelName, {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    });
+
+    presenceChannel
       .on('presence', { event: 'sync' }, () => {
         const state = presenceChannel.presenceState();
-        setIsOnline(Object.keys(state).includes(partnerId));
+        console.log('Presence sync:', state);
+        // Both users must be present in the state for online to be true
+        const userIds = [user.id, partnerId];
+        const bothPresent = userIds.every(id => Object.keys(state).includes(id));
+        setIsOnline(bothPresent);
       })
       .on('presence', { event: 'join' }, ({ key }) => {
-        if (key === partnerId) setIsOnline(true);
+        console.log('User joined:', key);
+        // Re-evaluate online status on join
+        const state = presenceChannel.presenceState();
+        const userIds = [user.id, partnerId];
+        const bothPresent = userIds.every(id => Object.keys(state).includes(id));
+        setIsOnline(bothPresent);
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
-        if (key === partnerId) setIsOnline(false);
+        console.log('User left:', key);
+        // Re-evaluate online status on leave
+        const state = presenceChannel.presenceState();
+        const userIds = [user.id, partnerId];
+        const bothPresent = userIds.every(id => Object.keys(state).includes(id));
+        setIsOnline(bothPresent);
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('Presence subscription status:', status, err);
+      });
 
     // Track own presence
-    if (user.id) {
-      presenceChannel.track({
-        user_id: user.id,
-        online_at: new Date().toISOString(),
-      });
-    }
+    presenceChannel.track({
+      user_id: user.id,
+      online_at: new Date().toISOString(),
+    });
 
     return () => {
+      console.log('Removing presence channel');
       supabase.removeChannel(presenceChannel);
     };
   }, [user?.id, partnerId]);
 
-  // Auto-scroll to bottom
+  // Smart auto-scroll to bottom: only if user is near the bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = document.querySelector('.flex-1.overflow-y-auto');
+    if (!container || !messagesEndRef.current) return;
+    const threshold = 120; // px from bottom to consider as "near bottom"
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    if (isNearBottom) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   // Send message with optimistic UI
   const sendMessage = async () => {
     if (!newMessage.trim() || sending || !user?.id) return;
-    
     if (!isValidUUID(partnerId)) {
       toast({
         title: "Invalid partner",
@@ -250,15 +356,13 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       });
       return;
     }
-
     setSending(true);
     setIsTyping(false);
     sendTypingIndicator(false);
-    
     const tempId = `temp-${Date.now()}`;
     const timestamp = new Date().toISOString();
-    
-    const optimisticMsg: Message = {
+    // Add replyToMessage reference in optimistic message (optional: add reply_to field in Message type)
+    const optimisticMsg: Message & { reply_to?: string } = {
       id: tempId,
       sender_id: user.id,
       receiver_id: partnerId,
@@ -266,11 +370,11 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       timestamp,
       is_read: false,
       delivered_at: timestamp,
+      ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
     };
-    
     setMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage("");
-    
+    setReplyToMessage(null);
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -280,19 +384,15 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           content: optimisticMsg.content,
           timestamp: optimisticMsg.timestamp,
           delivered_at: timestamp,
-        } as any)
+          ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
+        })
         .select()
         .single();
-      
       if (error) throw error;
-      
-      // Replace optimistic message with real one
       setMessages(prev => prev.map(msg => 
         msg.id === tempId ? { ...data as Message } : msg
       ));
-      
     } catch (error) {
-      console.error('Failed to send message:', error);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       toast({
         title: "Failed to send message",
@@ -385,7 +485,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             const isOwn = msg.sender_id === user?.id;
             const showTimestamp = index === 0 || 
               new Date(msg.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 5 * 60 * 1000;
-            
+            // Find replied message if any
+            const repliedMsg = msg.reply_to ? messages.find(m => m.id === msg.reply_to) : null;
             return (
               <div key={msg.id}>
                 {showTimestamp && (
@@ -401,7 +502,18 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                         : "bg-card text-card-foreground border rounded-bl-md"
                     }`} 
                     style={msg.id.startsWith('temp-') ? { opacity: 0.7, transform: 'scale(0.98)' } : {}}
+                    onTouchStart={e => handleMessageTouchStart(e, msg)}
+                    onTouchMove={e => handleMessageTouchMove(e, msg)}
+                    onMouseDown={e => handleMessageMouseDown(e, msg)}
                   >
+                    {/* Reply preview above message */}
+                    {repliedMsg && (
+                      <div className={`mb-1 px-2 py-1 rounded bg-muted text-xs ${isOwn ? 'text-white/80' : 'text-muted-foreground/80'}`}
+                        style={{ borderLeft: `3px solid ${isOwn ? '#fff' : '#e11d48'}` }}>
+                        <Reply className="inline w-3 h-3 mr-1 align-text-bottom" />
+                        {repliedMsg.content.length > 40 ? repliedMsg.content.slice(0, 40) + '…' : repliedMsg.content}
+                      </div>
+                    )}
                     <p className="text-sm leading-relaxed">{msg.content}</p>
                     <div className={`flex items-center justify-end gap-1 mt-2 text-xs ${
                       isOwn ? "text-white/70" : "text-muted-foreground"
@@ -434,6 +546,18 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       
       {/* Input */}
       <footer className="p-4 border-t bg-card/50 backdrop-blur-sm rounded-b-lg">
+        {/* Reply preview above input */}
+        {replyToMessage && (
+          <div className="flex items-center mb-2 px-3 py-2 rounded bg-muted/80 text-xs text-muted-foreground justify-between">
+            <div className="flex items-center gap-2">
+              <Reply className="w-4 h-4 text-primary" />
+              <span className="max-w-[180px] truncate">{replyToMessage.content.length > 60 ? replyToMessage.content.slice(0, 60) + '…' : replyToMessage.content}</span>
+            </div>
+            <button type="button" className="ml-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => setReplyToMessage(null)}>
+              Cancel
+            </button>
+          </div>
+        )}
         <form
           className="flex gap-3"
           onSubmit={e => {
