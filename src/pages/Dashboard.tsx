@@ -537,7 +537,6 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="flex-1 overflow-hidden">
-                {console.log('Rendering chat with partnerId:', partnerId)}
                 <EnhancedChat partnerId={partnerId} />
               </div>
             )}
