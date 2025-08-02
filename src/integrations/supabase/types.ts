@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -231,6 +231,7 @@ export type Database = {
           is_read: boolean | null
           read_at: string | null
           receiver_id: string
+          reply_to: string | null
           sender_id: string
           timestamp: string
         }
@@ -241,6 +242,7 @@ export type Database = {
           is_read?: boolean | null
           read_at?: string | null
           receiver_id: string
+          reply_to?: string | null
           sender_id: string
           timestamp?: string
         }
@@ -251,10 +253,19 @@ export type Database = {
           is_read?: boolean | null
           read_at?: string | null
           receiver_id?: string
+          reply_to?: string | null
           sender_id?: string
           timestamp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
