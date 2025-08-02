@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download } from "lucide-react";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
-import { uploadChatFile, getFileType } from "@/utils/uploadChatFile";
+import { AttachmentUpload, AttachmentDisplay } from './AttachmentUpload';
 
 interface Message {
   id: string;
@@ -19,8 +19,10 @@ interface Message {
   read_at?: string | null;
   reply_to?: string;
   attachment_url?: string;
-  attachment_type?: 'image' | 'document' | 'other';
+  attachment_type?: string;
   attachment_name?: string;
+  attachment_filename?: string;
+  attachment_size?: number;
 }
 
 interface TypingIndicator {
@@ -46,7 +48,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   // Emoji picker and attachment
   const [showEmoji, setShowEmoji] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Swipe/slide-to-reply gesture handlers
   const swipeData = useRef<{startX: number, triggered: boolean}>({startX: 0, triggered: false});
@@ -136,69 +138,65 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     });
   }, [user?.id, partnerId]);
 
-  // Handle file upload
-  const handleFileUpload = async (file: File) => {
+  // Handle attachment upload via the new AttachmentUpload component
+  const handleAttachmentUpload = async (url: string, filename: string, fileType: string, fileSize: number) => {
     if (!user?.id || !isValidUUID(partnerId)) return;
     
-    setUploading(true);
+    const tempId = `temp-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    
+    // Create optimistic message with attachment
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender_id: user.id,
+      receiver_id: partnerId,
+      content: `📎 ${filename}`,
+      timestamp,
+      is_read: false,
+      delivered_at: timestamp,
+      attachment_url: url,
+      attachment_type: fileType,
+      attachment_name: filename,
+      attachment_filename: filename,
+      attachment_size: fileSize,
+    };
+    
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setShowAttachments(false);
+    
     try {
-      const fileUrl = await uploadChatFile(user.id, partnerId, file);
-      
-      if (fileUrl) {
-        const fileType = getFileType(file.name);
-        const tempId = `temp-${Date.now()}`;
-        const timestamp = new Date().toISOString();
-        
-        // Create optimistic message with attachment
-        const optimisticMsg: Message = {
-          id: tempId,
+      // Send to database with all attachment fields
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
           sender_id: user.id,
           receiver_id: partnerId,
-          content: `📎 ${file.name}`,
-          timestamp,
-          is_read: false,
+          content: optimisticMsg.content,
+          timestamp: optimisticMsg.timestamp,
           delivered_at: timestamp,
-          attachment_url: fileUrl,
+          attachment_url: url,
           attachment_type: fileType,
-          attachment_name: file.name,
-        };
+          attachment_name: filename,
+          attachment_filename: filename,
+          attachment_size: fileSize,
+        })
+        .select()
+        .single();
         
-        setMessages((prev) => [...prev, optimisticMsg]);
-        
-        // Send to database
-        const { data, error } = await supabase
-          .from("messages")
-          .insert({
-            sender_id: user.id,
-            receiver_id: partnerId,
-            content: optimisticMsg.content,
-            timestamp: optimisticMsg.timestamp,
-            delivered_at: timestamp,
-            attachment_url: fileUrl,
-            attachment_type: fileType,
-            attachment_name: file.name,
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempId ? { ...data as Message } : msg
-        ));
-        
-        toast({ title: "File uploaded", description: `${file.name} sent successfully!` });
-      } else {
-        throw new Error('Failed to upload file');
-      }
+      if (error) throw error;
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId ? { ...data as Message } : msg
+      ));
+      
+      toast({ title: "File uploaded", description: `${filename} sent successfully!` });
     } catch (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       toast({
         title: "Upload failed", 
         description: "Could not upload file. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setUploading(false);
     }
   };
   const handleTyping = useCallback(() => {
@@ -589,45 +587,16 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                       </div>
                     )}
                     
-                    {/* Attachment rendering */}
+                    {/* Attachment rendering using the new AttachmentDisplay */}
                     {msg.attachment_url && (
                       <div className="mb-2">
-                        {msg.attachment_type === 'image' ? (
-                          <div className="relative rounded-lg overflow-hidden max-w-xs">
-                            <img 
-                              src={msg.attachment_url} 
-                              alt={msg.attachment_name || 'Image'}
-                              className="w-full h-auto rounded-lg cursor-pointer hover:opacity-95 transition-opacity"
-                              onClick={() => window.open(msg.attachment_url, '_blank')}
-                            />
-                            <div className="absolute top-2 right-2">
-                              <button
-                                onClick={() => window.open(msg.attachment_url, '_blank')}
-                                className="bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors"
-                                title="View full size"
-                              >
-                                <Download className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div 
-                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
-                              isOwn ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-muted hover:bg-muted/80'
-                            }`}
-                            onClick={() => window.open(msg.attachment_url, '_blank')}
-                          >
-                            {msg.attachment_type === 'document' ? (
-                              <FileText className="w-4 h-4" />
-                            ) : (
-                              <Paperclip className="w-4 h-4" />
-                            )}
-                            <span className="text-sm font-medium truncate flex-1">
-                              {msg.attachment_name || 'File'}
-                            </span>
-                            <Download className="w-3 h-3" />
-                          </div>
-                        )}
+                        <AttachmentDisplay
+                          url={msg.attachment_url}
+                          filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
+                          fileType={msg.attachment_type || 'other'}
+                          fileSize={msg.attachment_size || 0}
+                          className="max-w-xs"
+                        />
                       </div>
                     )}
                     
@@ -668,7 +637,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       <footer className="p-4 border-t bg-card/50 backdrop-blur-sm rounded-b-lg">
         {/* Reply preview above input */}
         {replyToMessage && (
-          <div className="flex items-center mb-2 px-3 py-2 rounded bg-muted/80 text-xs text-muted-foreground justify-between">
+          <div className="flex items-center mb-3 px-3 py-2 rounded bg-muted/80 text-xs text-muted-foreground justify-between">
             <div className="flex items-center gap-2">
               <Reply className="w-4 h-4 text-primary" />
               <span className="max-w-[180px] truncate">{replyToMessage.content.length > 60 ? replyToMessage.content.slice(0, 60) + '…' : replyToMessage.content}</span>
@@ -676,6 +645,17 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             <button type="button" className="ml-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => setReplyToMessage(null)}>
               Cancel
             </button>
+          </div>
+        )}
+        
+        {/* Attachment upload area */}
+        {showAttachments && (
+          <div className="mb-3">
+            <AttachmentUpload
+              userId={user?.id || ''}
+              partnerId={partnerId}
+              onAttachmentUpload={handleAttachmentUpload}
+            />
           </div>
         )}
         <form
@@ -724,39 +704,12 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
               {/* Attachment button */}
               <button
                 type="button"
-                className={`p-1 hover:bg-muted rounded-full transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => !uploading && fileInputRef.current?.click()}
+                className={`p-1 hover:bg-muted rounded-full transition-colors ${showAttachments ? 'bg-muted' : ''}`}
+                onClick={() => setShowAttachments(!showAttachments)}
                 aria-label="Attach file"
-                disabled={uploading}
               >
-                {uploading ? (
-                  <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Paperclip className="w-4 h-4 text-muted-foreground" />
-                )}
+                <Paperclip className="w-4 h-4 text-muted-foreground" />
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept="image/*,application/pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                      toast({
-                        title: "File too large",
-                        description: "Please select a file smaller than 10MB.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    handleFileUpload(file);
-                  }
-                  // Reset the input
-                  e.target.value = '';
-                }}
-              />
             </div>
           </div>
           
