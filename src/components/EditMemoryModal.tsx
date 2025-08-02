@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VisuallyHidden } from './ui/VisuallyHidden';
 import { cn } from '@/lib/utils';
 import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -75,6 +76,9 @@ const EditMemoryModal = ({ memory, open, onOpenChange }: EditMemoryModalProps) =
           <DialogTitle className="font-serif text-2xl text-center">
             Edit Memory ✨
           </DialogTitle>
+          <DialogDescription asChild>
+            <VisuallyHidden>Edit the details of your memory here.</VisuallyHidden>
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

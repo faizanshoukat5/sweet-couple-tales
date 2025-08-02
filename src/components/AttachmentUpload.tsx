@@ -25,9 +25,11 @@ export const AttachmentUpload: React.FC<AttachmentUploadProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for most files
+  const MAX_VIDEO_SIZE = 20 * 1024 * 1024; // 20MB for videos
   const ALLOWED_TYPES = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
     'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'text/plain', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
@@ -36,7 +38,12 @@ export const AttachmentUpload: React.FC<AttachmentUploadProps> = ({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const validFiles = files.filter(file => {
-      if (file.size > MAX_FILE_SIZE) {
+      const isVideo = file.type.startsWith('video/');
+      if (isVideo && file.size > MAX_VIDEO_SIZE) {
+        toast.error(`Video "${file.name}" is too large. Maximum size is 20MB.`);
+        return false;
+      }
+      if (!isVideo && file.size > MAX_FILE_SIZE) {
         toast.error(`File "${file.name}" is too large. Maximum size is 10MB.`);
         return false;
       }
@@ -218,6 +225,7 @@ export const AttachmentDisplay: React.FC<AttachmentDisplayProps> = ({
     document.body.removeChild(link);
   };
 
+
   if (fileType === 'image') {
     return (
       <div className={`max-w-xs rounded-lg overflow-hidden border ${className}`}>
@@ -225,7 +233,23 @@ export const AttachmentDisplay: React.FC<AttachmentDisplayProps> = ({
           src={url}
           alt={filename}
           className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => window.open(url, '_blank')}
+        />
+        <div className="p-2 bg-muted/50">
+          <div className="text-xs text-muted-foreground truncate">{filename}</div>
+          <div className="text-xs text-muted-foreground">{formatFileSize(fileSize)}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (fileType === 'video') {
+    return (
+      <div className={`max-w-xs rounded-lg overflow-hidden border ${className}`}>
+        <video
+          src={url}
+          controls
+          className="w-full h-auto cursor-pointer rounded-lg bg-black"
+          style={{ maxHeight: 240 }}
         />
         <div className="p-2 bg-muted/50">
           <div className="text-xs text-muted-foreground truncate">{filename}</div>

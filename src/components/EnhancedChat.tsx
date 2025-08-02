@@ -7,6 +7,11 @@ import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, I
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
 import { AttachmentUpload, AttachmentDisplay } from './AttachmentUpload';
+import { VoiceRecorder } from './VoiceRecorder';
+import { VoicePlayer } from './VoicePlayer';
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
+import { VisuallyHidden } from './ui/VisuallyHidden';
+import { uploadVoiceMessage } from '@/utils/uploadVoiceMessage';
 
 interface Message {
   id: string;
@@ -23,6 +28,7 @@ interface Message {
   attachment_name?: string;
   attachment_filename?: string;
   attachment_size?: number;
+  voice_duration?: number;
 }
 
 interface TypingIndicator {
@@ -50,6 +56,11 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Voice recording
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  // Notification sound
+  const notificationAudioRef = useRef<HTMLAudioElement>(null);
   // Swipe/slide-to-reply gesture handlers
   const swipeData = useRef<{startX: number, triggered: boolean}>({startX: 0, triggered: false});
   const handleMessageTouchStart = (e: React.TouchEvent, msg: Message) => {
@@ -199,6 +210,77 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       });
     }
   };
+
+  // Handle voice message upload
+  const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
+    if (!user?.id || !isValidUUID(partnerId)) return;
+    
+    const tempId = `temp-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    
+    // Create optimistic message for voice
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender_id: user.id,
+      receiver_id: partnerId,
+      content: `🎤 Voice message (${Math.floor(duration)}s)`,
+      timestamp,
+      is_read: false,
+      delivered_at: timestamp,
+      attachment_type: 'voice',
+      voice_duration: duration,
+    };
+    
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setShowVoiceRecorder(false);
+    
+    try {
+      // Upload voice message
+      const voiceUrl = await uploadVoiceMessage(user.id, partnerId, audioBlob);
+      
+      if (!voiceUrl) {
+        throw new Error('Failed to upload voice message');
+      }
+      
+      // Send to database
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          sender_id: user.id,
+          receiver_id: partnerId,
+          content: optimisticMsg.content,
+          timestamp: optimisticMsg.timestamp,
+          delivered_at: timestamp,
+          attachment_url: voiceUrl,
+          attachment_type: 'voice',
+          voice_duration: duration,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId ? { ...data as Message } : msg
+      ));
+      
+      toast({ title: "Voice message sent", description: "Voice message sent successfully!" });
+      
+      // Play notification sound for successful upload
+      if (notificationAudioRef.current) {
+        notificationAudioRef.current.currentTime = 0;
+        notificationAudioRef.current.play().catch(console.error);
+      }
+    } catch (error) {
+      console.error('Error handling voice message upload:', error);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      toast({
+        title: "Failed to send voice message",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
   const handleTyping = useCallback(() => {
     if (!isTyping) {
       setIsTyping(true);
@@ -241,8 +323,22 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         ).length;
         setUnreadCount(unread);
         
-        // Mark messages as read after a delay
-        setTimeout(() => markMessagesAsRead(), 1000);
+        // Only mark as read if window is focused and tab is visible
+        const markIfVisible = () => {
+          if (document.visibilityState === 'visible' && document.hasFocus()) {
+            markMessagesAsRead();
+          }
+        };
+        markIfVisible();
+        // Listen for visibility/focus changes while this chat is mounted
+        const onVisibility = () => markIfVisible();
+        window.addEventListener('focus', onVisibility);
+        document.addEventListener('visibilitychange', onVisibility);
+        // Cleanup listeners on unmount
+        return () => {
+          window.removeEventListener('focus', onVisibility);
+          document.removeEventListener('visibilitychange', onVisibility);
+        };
       } else {
         console.error('Error fetching messages:', error);
       }
@@ -292,11 +388,18 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           });
           
           // If message is from partner, increment unread count
-          if (msg.sender_id === partnerId) {
-            setUnreadCount(prev => prev + 1);
-            // Auto-mark as read after delay
-            setTimeout(() => markMessagesAsRead(), 2000);
+        if (msg.sender_id === partnerId) {
+          setUnreadCount(prev => prev + 1);
+          // Play notification sound
+          if (notificationAudioRef.current) {
+            notificationAudioRef.current.currentTime = 0;
+            notificationAudioRef.current.play();
           }
+          // Only mark as read if window is focused and tab is visible
+          if (document.visibilityState === 'visible' && document.hasFocus()) {
+            markMessagesAsRead();
+          }
+        }
         }
       )
       .on(
@@ -333,10 +436,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     const typingChannel = supabase
       .channel(channelName)
       .on('broadcast', { event: 'typing' }, (payload) => {
-        console.log('Typing indicator received:', payload);
         if (payload.payload.user_id === partnerId) {
           setPartnerTyping(payload.payload.is_typing);
-          
           if (payload.payload.is_typing) {
             setTimeout(() => setPartnerTyping(false), 3000);
           }
@@ -493,18 +594,38 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   // Get message status icon
   const getMessageStatusIcon = (msg: Message) => {
     if (msg.sender_id !== user?.id) return null;
-    
+
     if (msg.id.startsWith('temp-')) {
-      return <Circle className="w-3 h-3 text-muted-foreground/50" />;
+      return (
+        <span title="Sending..." className="inline-flex items-center gap-1">
+          <Circle className="w-3 h-3 text-muted-foreground/50" />
+          <span className="sr-only">Sending...</span>
+        </span>
+      );
     }
-    
+
     if (msg.read_at) {
-      return <CheckCheck className="w-3 h-3 text-primary" />;
+      return (
+        <span title="Read" className="inline-flex items-center gap-1">
+          <CheckCheck className="w-3 h-3 text-primary" />
+          <span className="text-xs text-primary/80">Read</span>
+        </span>
+      );
     } else if (msg.delivered_at) {
-      return <Check className="w-3 h-3 text-muted-foreground" />;
+      return (
+        <span title="Delivered" className="inline-flex items-center gap-1">
+          <CheckCheck className="w-3 h-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground/80">Delivered</span>
+        </span>
+      );
     }
-    
-    return <Circle className="w-3 h-3 text-muted-foreground/50" />;
+
+    return (
+      <span title="Sent" className="inline-flex items-center gap-1">
+        <Check className="w-3 h-3 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground/80">Sent</span>
+      </span>
+    );
   };
 
   if (!isValidUUID(partnerId)) {
@@ -588,7 +709,52 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                     )}
                     
                     {/* Attachment rendering using the new AttachmentDisplay */}
-                    {msg.attachment_url && (
+
+                    {/* Attachment rendering with lightbox for images */}
+                    {msg.attachment_url && msg.attachment_type === 'image' ? (
+                      <div className="mb-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <div>
+                              <AttachmentDisplay
+                                url={msg.attachment_url}
+                                filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
+                                fileType={msg.attachment_type || 'other'}
+                                fileSize={msg.attachment_size || 0}
+                                className="max-w-xs cursor-zoom-in"
+                              />
+                            </div>
+                          </DialogTrigger>
+                          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-3xl flex items-center justify-center">
+                            <DialogTitle asChild>
+                              <VisuallyHidden>
+                                {msg.attachment_filename || msg.attachment_name || 'Image attachment'}
+                              </VisuallyHidden>
+                            </DialogTitle>
+                            <DialogDescription asChild>
+                              <VisuallyHidden>
+                                {`Full-size preview of image attachment: ${msg.attachment_filename || msg.attachment_name || 'attachment'}`}
+                              </VisuallyHidden>
+                            </DialogDescription>
+                            <img
+                              src={msg.attachment_url}
+                              alt={msg.attachment_filename || msg.attachment_name || 'attachment'}
+                              className="max-h-[80vh] max-w-full rounded-lg shadow-lg"
+                              style={{ margin: '0 auto', display: 'block' }}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    ) : msg.attachment_url && msg.attachment_type === 'voice' ? (
+                      <div className="mb-2">
+                        <VoicePlayer
+                          audioUrl={msg.attachment_url}
+                          duration={msg.voice_duration || 0}
+                          isOwn={isOwn}
+                          className={isOwn ? 'bg-white/10' : 'bg-muted/50'}
+                        />
+                      </div>
+                    ) : msg.attachment_url ? (
                       <div className="mb-2">
                         <AttachmentDisplay
                           url={msg.attachment_url}
@@ -598,10 +764,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                           className="max-w-xs"
                         />
                       </div>
-                    )}
+                    ) : null}
                     
                     {/* Message text */}
-                    {msg.content && !msg.content.startsWith('📎') && (
+                    {msg.content && !msg.content.startsWith('📎') && !msg.content.startsWith('🎤') && !msg.attachment_url && (
                       <p className="text-sm leading-relaxed">{msg.content}</p>
                     )}
                     <div className={`flex items-center justify-end gap-1 mt-2 text-xs ${
@@ -658,6 +824,18 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             />
           </div>
         )}
+        
+        {/* Voice recorder area */}
+        {showVoiceRecorder && (
+          <div className="mb-3">
+            <VoiceRecorder
+              onVoiceMessageSend={handleVoiceMessageSend}
+              onCancel={() => setShowVoiceRecorder(false)}
+              isRecording={isRecordingVoice}
+              setIsRecording={setIsRecordingVoice}
+            />
+          </div>
+        )}
         <form
           className="flex gap-3"
           onSubmit={e => {
@@ -710,6 +888,15 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
               >
                 <Paperclip className="w-4 h-4 text-muted-foreground" />
               </button>
+              {/* Voice record button */}
+              <button
+                type="button"
+                className={`p-1 hover:bg-muted rounded-full transition-colors ${showVoiceRecorder || isRecordingVoice ? 'bg-muted' : ''}`}
+                onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
+                aria-label="Record voice message"
+              >
+                <Mic className={`w-4 h-4 ${isRecordingVoice ? 'text-red-500' : 'text-muted-foreground'}`} />
+              </button>
             </div>
           </div>
           
@@ -741,6 +928,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           </p>
         )}
       </footer>
+      <audio ref={notificationAudioRef} src="/notification.mp3" preload="auto" />
     </div>
   );
 };

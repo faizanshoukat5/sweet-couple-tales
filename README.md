@@ -2,6 +2,7 @@
 
 A beautiful romantic memories journal app for couples to preserve their special moments together.
 
+
 ## 🌟 Features
 
 - **Create Beautiful Memories**: Write your love story with rich text, photos, and special dates
@@ -12,8 +13,20 @@ A beautiful romantic memories journal app for couples to preserve their special 
 - **Shared Calendar**: Keep track of important dates and anniversaries
 - **Goals & Bucket List**: Plan your future adventures together
 - **Private Chat**: Communicate with your partner within the app
+- **WhatsApp-style Voice Messages**: Record, send, and play voice messages in chat (with waveform, duration, and status ticks)
 - **Export Memories**: Backup your memories as JSON or PDF
 - **Notifications**: Get reminded of anniversaries and special dates
+## 🎤 Voice Messages
+
+Send and receive voice messages just like WhatsApp:
+
+- Tap the microphone button in chat to start recording
+- Preview your recording before sending
+- Send voice messages with waveform, duration, and status ticks
+- Recipients can play/pause voice messages with animated progress
+- Voice messages are stored securely in Supabase Storage
+
+All voice messages are end-to-end delivered and show sent/delivered/read status just like text messages.
 
 ## 🚀 Live Demo
 

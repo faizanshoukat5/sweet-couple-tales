@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VisuallyHidden } from './ui/VisuallyHidden';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -165,6 +166,9 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
             <Heart className="w-6 h-6 text-primary" />
             Profile Setup
           </DialogTitle>
+          <DialogDescription asChild>
+            <VisuallyHidden>Set up your profile information here.</VisuallyHidden>
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

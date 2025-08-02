@@ -8,7 +8,7 @@ export const uploadChatFile = async (
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `chat-attachments/${userId}/${partnerId}/${fileName}`;
+    const filePath = `${userId}/${partnerId}/${fileName}`;
 
     // Upload file to Supabase Storage
     const { data, error } = await supabase.storage
@@ -35,12 +35,14 @@ export const uploadChatFile = async (
   }
 };
 
-export const getFileType = (filename: string): 'image' | 'document' | 'other' => {
+export const getFileType = (filename: string): 'image' | 'video' | 'document' | 'other' => {
   const ext = filename.toLowerCase().split('.').pop();
   const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+  const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'qt'];
   const docExts = ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'];
   
   if (imageExts.includes(ext || '')) return 'image';
+  if (videoExts.includes(ext || '')) return 'video';
   if (docExts.includes(ext || '')) return 'document';
   return 'other';
 };

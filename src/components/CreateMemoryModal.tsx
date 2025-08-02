@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VisuallyHidden } from './ui/VisuallyHidden';
 import { cn } from '@/lib/utils';
 import { Heart } from 'lucide-react';
 import { format } from 'date-fns';
@@ -70,6 +71,9 @@ const CreateMemoryModal = ({ open, onOpenChange }: CreateMemoryModalProps) => {
           <DialogTitle className="font-serif text-2xl text-center">
             Create a New Memory ✨
           </DialogTitle>
+          <DialogDescription asChild>
+            <VisuallyHidden>Fill out the form to create a new memory.</VisuallyHidden>
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
