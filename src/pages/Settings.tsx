@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ const Settings = () => {
     })();
   }, [user]);
 
+  const navigate = useNavigate();
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
@@ -85,6 +87,10 @@ const Settings = () => {
         title: "Profile Updated",
         description: "Your profile has been saved successfully!",
       });
+      // Navigate to dashboard after successful save
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 800);
     } catch (error) {
       toast({
         title: "Error",
