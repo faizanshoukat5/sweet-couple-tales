@@ -647,9 +647,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[600px] bg-background rounded-lg shadow-sm border md:max-h-[600px] md:rounded-lg md:shadow-sm md:border w-full max-w-full sm:max-w-full sm:rounded-none sm:shadow-none sm:border-0">
+    <div className="flex flex-col h-full max-h-[600px] bg-background rounded-lg shadow-sm border">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-sm rounded-t-lg sticky top-0 z-10 sm:rounded-t-none sm:p-2 sm:text-base">
+      <header className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-sm rounded-t-lg">
         <div>
           <h2 className="font-serif text-xl font-bold text-primary">Private Messages</h2>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -666,7 +666,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       </header>
       
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-2 py-2 bg-gradient-to-b from-background/50 to-background space-y-2 sm:px-1 sm:py-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 bg-gradient-to-b from-background/50 to-background space-y-3">
         {messages.length === 0 ? (
           <div className="text-center text-muted-foreground mt-12">
             <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -689,11 +689,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                 )}
                 <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-xs px-3 py-2 rounded-2xl shadow-sm break-words transition-all duration-300 ease-out
+                    className={`max-w-xs px-4 py-3 rounded-2xl shadow-sm break-words transition-all duration-300 ease-out
                       ${isOwn ? "bg-gradient-romantic text-white rounded-br-md" : "bg-card text-card-foreground border rounded-bl-md"}
                       animate-fade-slide-in
                       ${msg.id.startsWith('temp-') ? 'opacity-70 scale-95' : 'opacity-100 scale-100'}
-                      sm:max-w-[90vw] sm:px-2 sm:py-2 sm:text-sm
                     `}
                     style={msg.id.startsWith('temp-') ? { filter: 'blur(0.5px)' } : {}}
                     onTouchStart={e => handleMessageTouchStart(e, msg)}
@@ -801,7 +800,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       </div>
       
       {/* Input */}
-      <footer className="p-4 border-t bg-card/50 backdrop-blur-sm rounded-b-lg sticky bottom-0 z-10 sm:p-2 sm:rounded-b-none">
+      <footer className="p-4 border-t bg-card/50 backdrop-blur-sm rounded-b-lg">
         {/* Reply preview above input */}
         {replyToMessage && (
           <div className="flex items-center mb-3 px-3 py-2 rounded bg-muted/80 text-xs text-muted-foreground justify-between">
@@ -817,7 +816,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         {/* Attachment upload area */}
         {showAttachments && (
-          <div className="mb-2 sm:mb-1">
+          <div className="mb-3">
             <AttachmentUpload
               userId={user?.id || ''}
               partnerId={partnerId}
@@ -828,7 +827,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         {/* Voice recorder area */}
         {showVoiceRecorder && (
-          <div className="mb-2 sm:mb-1">
+          <div className="mb-3">
             <VoiceRecorder
               onVoiceMessageSend={handleVoiceMessageSend}
               onCancel={() => setShowVoiceRecorder(false)}
@@ -838,17 +837,17 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           </div>
         )}
         <form
-          className="flex gap-2 items-end sm:gap-1"
+          className="flex gap-3"
           onSubmit={e => {
             e.preventDefault();
             sendMessage();
           }}
         >
-          <div className="flex-1 relative min-w-0">
+          <div className="flex-1 relative">
             <input
               ref={inputRef}
               type="text"
-              className="w-full border border-border rounded-full px-4 py-3 pr-20 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:px-3 sm:py-2 sm:text-sm"
+              className="w-full border border-border rounded-full px-4 py-3 pr-20 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               value={newMessage}
               onChange={(e) => {
                 setNewMessage(e.target.value);
@@ -857,10 +856,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
               placeholder="Type your message..."
               disabled={sending}
               maxLength={500}
-              autoComplete="off"
-              inputMode="text"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:right-1">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {/* Emoji picker button */}
               <div className="relative">
                 <button
@@ -907,7 +904,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             type="submit" 
             variant="romantic" 
             disabled={sending || !newMessage.trim()}
-            className="rounded-full px-6 hover:scale-105 transition-transform flex items-center gap-2 sm:px-3 sm:text-sm"
+            className="rounded-full px-6 hover:scale-105 transition-transform flex items-center gap-2"
           >
             {sending ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -919,7 +916,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         {/* Character count */}
         {newMessage.length > 400 && (
-          <p className="text-xs text-muted-foreground mt-2 text-right sm:mt-1">
+          <p className="text-xs text-muted-foreground mt-2 text-right">
             {500 - newMessage.length} characters remaining
           </p>
         )}
