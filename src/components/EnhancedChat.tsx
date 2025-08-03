@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -508,33 +508,27 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     };
   }, [user?.id, partnerId]);
 
-  // Initial scroll to bottom when chat opens or messages first load
-  useEffect(() => {
+  // Robust scroll to bottom when chat opens or messages first load
+  useLayoutEffect(() => {
     if (messages.length > 0 && messagesContainerRef.current) {
-      // Aggressive scroll to bottom using the specific container ref
       const container = messagesContainerRef.current;
       
-      // Multiple attempts to ensure it scrolls to bottom
-      const scrollToBottom = () => {
-        container.scrollTop = container.scrollHeight;
-      };
+      // Force scroll to bottom synchronously after DOM updates
+      container.scrollTop = container.scrollHeight;
       
-      // Immediate scroll
-      scrollToBottom();
-      
-      // Delayed scroll to handle any layout changes
-      setTimeout(scrollToBottom, 10);
-      setTimeout(scrollToBottom, 100);
-      setTimeout(scrollToBottom, 300);
-      
-      // Final attempt with messagesEndRef
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+      // Additional scroll using requestAnimationFrame for browser paint cycle
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+          
+          // Final backup with messagesEndRef
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+          }
         }
-      }, 500);
+      });
     }
-  }, [partnerId, messages.length]); // Trigger when partner changes or when message count changes
+  }, [partnerId, messages.length]); // Trigger when partner changes or message count changes
 
   // Smart auto-scroll to bottom: only if user is near the bottom (for new messages)
   useEffect(() => {
