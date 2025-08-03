@@ -50,6 +50,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
   // Emoji picker and attachment
@@ -509,27 +510,37 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
 
   // Initial scroll to bottom when chat opens or messages first load
   useEffect(() => {
-    if (messages.length > 0) {
-      // Force scroll to bottom immediately when messages load
-      const container = document.querySelector('.flex-1.overflow-y-auto');
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-      }
+    if (messages.length > 0 && messagesContainerRef.current) {
+      // Aggressive scroll to bottom using the specific container ref
+      const container = messagesContainerRef.current;
       
-      // Also use messagesEndRef as backup
+      // Multiple attempts to ensure it scrolls to bottom
+      const scrollToBottom = () => {
+        container.scrollTop = container.scrollHeight;
+      };
+      
+      // Immediate scroll
+      scrollToBottom();
+      
+      // Delayed scroll to handle any layout changes
+      setTimeout(scrollToBottom, 10);
+      setTimeout(scrollToBottom, 100);
+      setTimeout(scrollToBottom, 300);
+      
+      // Final attempt with messagesEndRef
       setTimeout(() => {
         if (messagesEndRef.current) {
           messagesEndRef.current.scrollIntoView({ behavior: "instant" });
         }
-      }, 50);
+      }, 500);
     }
-  }, [partnerId, messages.length > 0]); // Trigger when partner changes or when we have messages
+  }, [partnerId, messages.length]); // Trigger when partner changes or when message count changes
 
   // Smart auto-scroll to bottom: only if user is near the bottom (for new messages)
   useEffect(() => {
-    const container = document.querySelector('.flex-1.overflow-y-auto');
-    if (!container || !messagesEndRef.current || messages.length === 0) return;
+    if (!messagesContainerRef.current || !messagesEndRef.current || messages.length === 0) return;
     
+    const container = messagesContainerRef.current;
     const threshold = 120; // px from bottom to consider as "near bottom"
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     if (isNearBottom) {
@@ -685,7 +696,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       </header>
       
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 bg-gradient-to-b from-background/50 to-background space-y-3">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 bg-gradient-to-b from-background/50 to-background space-y-3">
         {messages.length === 0 ? (
           <div className="text-center text-muted-foreground mt-12">
             <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
