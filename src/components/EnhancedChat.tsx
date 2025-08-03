@@ -507,6 +507,13 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     };
   }, [user?.id, partnerId]);
 
+  // Initial scroll to bottom when chat opens
+  useEffect(() => {
+    if (messages.length > 0 && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+    }
+  }, [messages.length > 0 ? messages[0]?.id : null]); // Only trigger on first load
+
   // Smart auto-scroll to bottom: only if user is near the bottom
   useEffect(() => {
     const container = document.querySelector('.flex-1.overflow-y-auto');
