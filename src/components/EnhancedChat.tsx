@@ -507,17 +507,21 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     };
   }, [user?.id, partnerId]);
 
-  // Initial scroll to bottom when chat opens
+  // Initial scroll to bottom when chat opens or messages first load
   useEffect(() => {
     if (messages.length > 0 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      }, 100);
     }
-  }, [messages.length > 0 ? messages[0]?.id : null]); // Only trigger on first load
+  }, [partnerId, messages.length === 0 ? null : 'hasMessages']); // Trigger when partner changes or when we get first messages
 
-  // Smart auto-scroll to bottom: only if user is near the bottom
+  // Smart auto-scroll to bottom: only if user is near the bottom (for new messages)
   useEffect(() => {
     const container = document.querySelector('.flex-1.overflow-y-auto');
-    if (!container || !messagesEndRef.current) return;
+    if (!container || !messagesEndRef.current || messages.length === 0) return;
+    
     const threshold = 120; // px from bottom to consider as "near bottom"
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     if (isNearBottom) {
