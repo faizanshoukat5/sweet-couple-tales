@@ -124,6 +124,96 @@ export default {
 					'50%': {
 						opacity: '0.8'
 					}
+				},
+				'heart-beat': {
+					'0%, 50%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					},
+					'25%': {
+						transform: 'scale(1.1)',
+						opacity: '0.8'
+					},
+					'75%': {
+						transform: 'scale(0.95)',
+						opacity: '0.9'
+					}
+				},
+				'love-pulse': {
+					'0%': {
+						boxShadow: '0 0 0 0 hsl(var(--primary) / 0.7)'
+					},
+					'70%': {
+						boxShadow: '0 0 0 15px hsl(var(--primary) / 0)'
+					},
+					'100%': {
+						boxShadow: '0 0 0 0 hsl(var(--primary) / 0)'
+					}
+				},
+				'romantic-spinner': {
+					'0%': {
+						transform: 'rotate(0deg)'
+					},
+					'100%': {
+						transform: 'rotate(360deg)'
+					}
+				},
+				'flower-bloom': {
+					'0%': {
+						transform: 'scale(0) rotate(0deg)',
+						opacity: '0'
+					},
+					'50%': {
+						transform: 'scale(1.1) rotate(180deg)',
+						opacity: '0.8'
+					},
+					'100%': {
+						transform: 'scale(1) rotate(360deg)',
+						opacity: '1'
+					}
+				},
+				'love-bounce': {
+					'0%, 20%, 50%, 80%, 100%': {
+						transform: 'translateY(0)'
+					},
+					'40%': {
+						transform: 'translateY(-10px)'
+					},
+					'60%': {
+						transform: 'translateY(-5px)'
+					}
+				},
+				'shimmer': {
+					'0%': {
+						backgroundPosition: '-200% 0'
+					},
+					'100%': {
+						backgroundPosition: '200% 0'
+					}
+				},
+				'fade-slide-up': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(30px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'romantic-scale': {
+					'0%': {
+						transform: 'scale(0.8)',
+						opacity: '0'
+					},
+					'50%': {
+						transform: 'scale(1.05)',
+						opacity: '0.8'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
 				}
 			},
 			animation: {
@@ -131,7 +221,15 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.6s ease-out',
 				'heart-float': 'heart-float 3s ease-in-out infinite',
-				'romantic-glow': 'romantic-glow 4s ease-in-out infinite'
+				'romantic-glow': 'romantic-glow 4s ease-in-out infinite',
+				'heart-beat': 'heart-beat 1.5s ease-in-out infinite',
+				'love-pulse': 'love-pulse 2s infinite',
+				'romantic-spinner': 'romantic-spinner 1s linear infinite',
+				'flower-bloom': 'flower-bloom 0.8s ease-out',
+				'love-bounce': 'love-bounce 2s infinite',
+				'shimmer': 'shimmer 2s linear infinite',
+				'fade-slide-up': 'fade-slide-up 0.5s ease-out',
+				'romantic-scale': 'romantic-scale 0.6s ease-out'
 			}
 		}
 	},
