@@ -19,6 +19,13 @@ import AlbumBrowser from '@/components/AlbumBrowser';
 import SharedCalendar from '@/components/SharedCalendar';
 import EnhancedChat from '@/components/EnhancedChat';
 import { useLocation } from 'react-router-dom';
+
+
+import { MoodTracker } from '@/components/MoodTracker';
+import { LoveNotesWidget } from '@/components/LoveNotesWidget';
+import { DateIdeasWidget } from '@/components/DateIdeasWidget';
+import { LoveLanguageQuiz, PartnerQuizResults } from '@/components';
+import { useMoods } from '@/hooks/useMoods';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
@@ -38,6 +45,7 @@ const Dashboard = () => {
   const [partnerProfile, setPartnerProfile] = useState<{ display_name?: string; email?: string; avatar_url?: string } | null>(null);
   const location = useLocation();
 
+  const { getMood, setMood } = useMoods();
   const filteredMemories = memories.filter(memory => {
     const matchesSearch = !searchTerm || 
       memory.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -187,7 +195,10 @@ const Dashboard = () => {
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Loading your beautiful memories...</p>
+
         </div>
+        {/* Love Notes Widget */}
+        <LoveNotesWidget />
       </div>
     );
   }
@@ -237,6 +248,29 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Mood Tracker Section */}
+        {user && partnerId && (
+          <div className="mb-10">
+            <Card className="bg-gradient-to-br from-rose-50 via-white to-pink-50 border-0 shadow-xl rounded-2xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-rose-100 to-pink-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className="bg-rose-200 text-rose-700 rounded-full p-3 shadow-sm">
+                    <Heart className="w-6 h-6" />
+                  </span>
+                  <div>
+                    <CardTitle className="font-serif text-2xl font-bold text-rose-700">Daily Mood Tracker</CardTitle>
+                    <p className="text-rose-600 text-sm font-medium mt-1">Share your feelings and connect with your partner</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <MoodTracker userId={user.id} partnerId={partnerId} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Search and Filters */}
         <Card className="mb-10 shadow-xl border-0 bg-white/90">
           <CardContent className="p-8">
@@ -448,6 +482,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+
         {/* Shared Calendar */}
         <div className="mt-14" id="calendar">
           <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
@@ -457,6 +492,22 @@ const Dashboard = () => {
             </CardHeader>
             <SharedCalendar />
           </Card>
+        </div>
+
+        {/* Love Notes Widget (moved here) */}
+        <LoveNotesWidget />
+
+        {/* Date Ideas Generator */}
+        <DateIdeasWidget />
+
+        {/* Love Language Quiz */}
+        <div className="mt-14" id="love-language-quiz">
+          <LoveLanguageQuiz partnerId={partnerId} />
+        </div>
+
+        {/* Partner's Quiz Results */}
+        <div className="mt-8" id="partner-quiz-results">
+          <PartnerQuizResults />
         </div>
 
         {/* Quick Actions Section */}

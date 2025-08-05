@@ -14,6 +14,9 @@ A beautiful romantic memories journal app for couples to preserve their special 
 - **Goals & Bucket List**: Plan your future adventures together
 - **Private Chat**: Communicate with your partner within the app
 - **WhatsApp-style Voice Messages**: Record, send, and play voice messages in chat (with waveform, duration, and status ticks)
+- **Love Notes Sharing**: Exchange personalized romantic notes that appear as daily love messages for your partner
+- **Custom Couple Quizzes**: Create personalized quizzes for your partner and view their responses
+- **Date Ideas Generator**: Get random date ideas by category or add your own custom suggestions
 - **Export Memories**: Backup your memories as JSON or PDF
 - **Notifications**: Get reminded of anniversaries and special dates
 ## 🎤 Voice Messages
@@ -27,6 +30,45 @@ Send and receive voice messages just like WhatsApp:
 - Voice messages are stored securely in Supabase Storage
 
 All voice messages are end-to-end delivered and show sent/delivered/read status just like text messages.
+
+## 💌 Love Notes Sharing
+
+Share personalized romantic messages with your partner:
+
+- **Daily Love Notes**: Your partner's notes appear as rotating daily love messages
+- **Personal Collection**: Write and manage your own collection of love notes
+- **Real-time Sharing**: Notes instantly become visible to your partner
+- **Beautiful Display**: Romantic presentation with heart animations and gradients
+- **Fallback System**: Default romantic messages when no custom notes exist
+- **Easy Management**: Add, view, and remove your notes with a simple interface
+
+Create meaningful connections by sharing heartfelt messages that remind your partner how much they mean to you every day.
+
+## 🧩 Custom Couple Quizzes
+
+Create personalized quizzes to learn more about your partner:
+
+- **Quiz Builder**: Design custom questions with multiple choice answers
+- **Partner Responses**: View your partner's quiz attempts and responses
+- **Relationship Insights**: Learn new things about each other through fun questions
+- **Love Language Assessment**: Built-in love language quiz with detailed results
+- **Share Results**: Partners can view each other's quiz results when shared
+- **Personal Growth**: Track how your understanding of each other evolves over time
+
+Build deeper connections by creating thoughtful questions that spark meaningful conversations.
+
+## 💡 Date Ideas Generator
+
+Never run out of romantic date ideas:
+
+- **Random Generator**: Get surprise date suggestions with the shuffle feature
+- **Category Filters**: Browse ideas by type (Romantic, Adventurous, At Home, Budget-Friendly, etc.)
+- **Custom Ideas**: Add your own personalized date suggestions to the collection
+- **Seasonal Options**: Find ideas perfect for different times of the year
+- **Variety**: Mix of indoor, outdoor, budget-friendly, and special occasion ideas
+- **Easy Planning**: Click to generate new ideas instantly when you're feeling spontaneous
+
+Keep your relationship exciting with fresh ideas for quality time together.
 
 ## 🚀 Live Demo
 
@@ -117,6 +159,11 @@ The app uses the following main tables:
 - **important_dates**: Anniversaries and special dates
 - **couples**: Partner relationships
 - **messages**: Private chat messages
+- **love_notes**: Shared romantic notes between partners
+- **custom_quizzes**: Partner-created quizzes and questions
+- **custom_quiz_attempts**: Quiz responses and results
+- **love_language_quiz_results**: Love language assessment scores
+- **date_ideas**: Collection of date suggestions by category
 
 ## 🔐 Authentication & Security
 
@@ -140,6 +187,10 @@ The app uses the following main tables:
 - **Album Browser**: Organize photos and memories into albums
 - **Shared Calendar**: View important dates with recurring events
 - **Partner Chat**: Real-time messaging between partners
+- **Love Notes Widget**: Share and display romantic notes between partners
+- **Custom Quiz Builder**: Create and manage personalized quizzes for your partner
+- **Date Ideas Generator**: Browse and add romantic date suggestions by category
+- **Love Language Assessment**: Take and share love language quiz results
 - **Profile Setup**: Configure user profiles and partner connections
 
 ## 🚀 Deployment
