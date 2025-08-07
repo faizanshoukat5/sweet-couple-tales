@@ -23,12 +23,7 @@ export const uploadChatFile = async (
       return null;
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('chat_attachments')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
+    return filePath;
   } catch (error) {
     console.error('Upload error:', error);
     return null;

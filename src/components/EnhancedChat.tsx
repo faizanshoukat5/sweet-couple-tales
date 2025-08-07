@@ -12,6 +12,7 @@ import { VoicePlayer } from './VoicePlayer';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
 import { VisuallyHidden } from './ui/VisuallyHidden';
 import { uploadVoiceMessage } from '@/utils/uploadVoiceMessage';
+import { getSignedChatAttachmentUrl } from '@/utils/getSignedChatAttachmentUrl';
 
 interface Message {
   id: string;
@@ -37,6 +38,90 @@ interface TypingIndicator {
   is_typing: boolean;
   last_typed: string;
 }
+
+
+const useResolvedAttachmentUrl = (raw?: string) => {
+  const [url, setUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!raw) { setUrl(null); return; }
+    if (raw.startsWith('http')) { setUrl(raw); return; }
+    getSignedChatAttachmentUrl(raw).then(setUrl).catch(() => setUrl(null));
+  }, [raw]);
+  return url;
+};
+
+const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
+  const resolvedUrl = useResolvedAttachmentUrl(msg.attachment_url);
+  const raw = msg.attachment_url;
+  if (!raw) return null;
+  const isPath = !raw.startsWith('http');
+  const urlToUse = isPath ? resolvedUrl ?? '' : raw;
+
+  if (isPath && !resolvedUrl) {
+    return <div className="mb-2 text-xs text-muted-foreground">Loading attachment…</div>;
+  }
+
+  if (msg.attachment_type === 'image') {
+    return (
+      <div className="mb-2">
+        <Dialog>
+          <DialogTrigger asChild>
+            <div>
+              <AttachmentDisplay
+                url={urlToUse}
+                filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
+                fileType="image"
+                fileSize={msg.attachment_size || 0}
+                className="max-w-xs cursor-zoom-in"
+              />
+            </div>
+          </DialogTrigger>
+          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-3xl flex items-center justify-center">
+            <DialogTitle asChild>
+              <VisuallyHidden>
+                {msg.attachment_filename || msg.attachment_name || 'Image attachment'}
+              </VisuallyHidden>
+            </DialogTitle>
+            <DialogDescription asChild>
+              <VisuallyHidden>
+                {`Full-size preview of image attachment: ${msg.attachment_filename || msg.attachment_name || 'attachment'}`}
+              </VisuallyHidden>
+            </DialogDescription>
+            <img
+              src={urlToUse}
+              alt={msg.attachment_filename || msg.attachment_name || 'attachment'}
+              className="max-h-[80vh] max-w-full rounded-lg shadow-lg"
+              style={{ margin: '0 auto', display: 'block' }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  } else if (msg.attachment_type === 'voice') {
+    return (
+      <div className="mb-2">
+        <VoicePlayer
+          audioUrl={urlToUse}
+          duration={msg.voice_duration || 0}
+          isOwn={isOwn}
+          className={isOwn ? 'bg-white/10' : 'bg-muted/50'}
+        />
+      </div>
+    );
+  } else {
+    return (
+      <div className="mb-2">
+        <AttachmentDisplay
+          url={urlToUse}
+          filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
+          fileType={msg.attachment_type || 'other'}
+          fileSize={msg.attachment_size || 0}
+          className="max-w-xs"
+        />
+      </div>
+    );
+  }
+};
 
 const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const { user } = useAuth();

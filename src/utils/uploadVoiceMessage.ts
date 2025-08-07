@@ -25,12 +25,7 @@ export const uploadVoiceMessage = async (
       return null;
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('chat_attachments')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
+    return filePath;
   } catch (error) {
     console.error('Voice upload error:', error);
     return null;
