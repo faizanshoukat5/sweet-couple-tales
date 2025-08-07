@@ -31,12 +31,16 @@ export const useAlbums = () => {
   };
 
   const addAlbum = async (name: string, description?: string) => {
-    if (!user) return;
+    if (!user) return undefined;
     const { data, error } = await supabase
       .from('albums')
       .insert([{ user_id: user.id, name, description }])
       .select();
-    if (!error && data) setAlbums((prev) => [...prev, ...data]);
+    if (!error && data) {
+      setAlbums((prev) => [...prev, ...data]);
+      return data[0];
+    }
+    return undefined;
   };
 
   const deleteAlbum = async (id: string) => {

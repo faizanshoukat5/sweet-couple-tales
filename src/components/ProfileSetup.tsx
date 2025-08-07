@@ -9,21 +9,28 @@ import { VisuallyHidden } from './ui/VisuallyHidden';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Heart, User } from 'lucide-react';
+import { CalendarIcon, Heart, User, Smile, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import SelectPartner from '@/components/SelectPartner';
+
+const EMOJI_AVATARS = [
+  '😊','😍','🥰','😘','😎','🤩','🥳','😇','😻','💖','💘','💝','💞','💕','💓','💗','','💚','💛','🧡','💜','🖤','🤍','🤎','💋','🌹','🌸','🌻','🌼','🌺','🌷','🌟','✨','🎉','🎊','🎈','🎀','🎁','👩‍❤️‍👨','👩‍❤️‍👩','👨‍❤️‍👨'
+];
 
 interface ProfileSetupProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+
 interface ProfileData {
   display_name: string;
   partner_name: string;
   relationship_start_date: Date | null;
   avatar_url: string;
+  avatar_emoji: string;
+  first_goal: string;
 }
 
 const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
@@ -38,6 +45,8 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
     partner_name: '',
     relationship_start_date: null,
     avatar_url: '',
+    avatar_emoji: '',
+    first_goal: '',
   });
 
   const fetchProfile = async () => {
@@ -60,6 +69,8 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
           partner_name: data.partner_name || '',
           relationship_start_date: data.relationship_start_date ? new Date(data.relationship_start_date) : null,
           avatar_url: data.avatar_url || '',
+          avatar_emoji: data.avatar_emoji || '',
+          first_goal: data.first_goal || '',
         });
       }
       // Fetch couple relationship
@@ -91,9 +102,17 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
     }
   }, [open, user]);
 
+  const [validationError, setValidationError] = useState<string | null>(null);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!user) return;
+
+    // Validate required fields
+    if (!profileData.display_name || (!profileData.avatar_emoji && !profileData.avatar_url) || !partnerId || !profileData.partner_name || !profileData.relationship_start_date) {
+      setValidationError('Please fill in all required fields.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -105,6 +124,8 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
           ? format(profileData.relationship_start_date, 'yyyy-MM-dd') 
           : null,
         avatar_url: profileData.avatar_url,
+        avatar_emoji: profileData.avatar_emoji,
+        first_goal: profileData.first_goal,
       };
 
       const { error } = await supabase
@@ -160,18 +181,81 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-center flex items-center justify-center gap-2">
-            <Heart className="w-6 h-6 text-primary" />
-            Profile Setup
-          </DialogTitle>
-          <DialogDescription asChild>
-            <VisuallyHidden>Set up your profile information here.</VisuallyHidden>
-          </DialogDescription>
-        </DialogHeader>
-
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Welcome Banner */}
+        <div className="flex flex-col items-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-2 text-2xl font-bold text-rose-500">
+            <Heart className="w-7 h-7 animate-pulse text-rose-400" />
+            Welcome to Sweet Couple Tales!
+            <Sparkles className="w-5 h-5 text-yellow-400 ml-1 animate-bounce" />
+          </span>
+          <div className="text-muted-foreground text-center text-base">Let’s set up your romantic profile</div>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Avatar/Emoji Picker */}
+          <div className="space-y-2">
+            <Label className="text-base font-medium">Choose Your Avatar</Label>
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              {/* Emoji Picker */}
+              <div className="flex flex-wrap gap-1 max-w-xs">
+                {EMOJI_AVATARS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className={cn(
+                      "text-2xl p-2 rounded-full border transition-all",
+                      profileData.avatar_emoji === emoji && "bg-rose-100 border-rose-400 scale-110"
+                    )}
+                    onClick={() => setProfileData(prev => ({ ...prev, avatar_emoji: emoji, avatar_url: '' }))}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-xs text-muted-foreground">or upload a photo</span>
+                <Input
+                  id="avatar_url"
+                  type="url"
+                  value={profileData.avatar_url}
+                  onChange={(e) => {
+                    setProfileData(prev => ({ ...prev, avatar_url: e.target.value, avatar_emoji: '' }));
+                    setAvatarError(false);
+                  }}
+                  placeholder="https://example.com/your-photo.jpg"
+                  className="w-48"
+                />
+                {profileData.avatar_url && !avatarError ? (
+                  <img
+                    src={profileData.avatar_url}
+                    alt="Profile preview"
+                    className="w-16 h-16 rounded-full object-cover border"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : profileData.avatar_url && avatarError ? (
+                  <img
+                    src="/placeholder.svg"
+                    alt="Fallback avatar"
+                    className="w-16 h-16 rounded-full object-cover border bg-muted"
+                  />
+                ) : null}
+              </div>
+            </div>
+            {/* Live Preview */}
+            <div className="flex flex-col items-center mt-2">
+              <span className="text-xs text-muted-foreground mb-1">Live Preview</span>
+              <div className="w-20 h-20 rounded-full border-2 border-rose-300 bg-white flex items-center justify-center text-4xl">
+                {profileData.avatar_emoji ? profileData.avatar_emoji : (
+                  profileData.avatar_url && !avatarError ? (
+                    <img src={profileData.avatar_url} alt="avatar" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <Smile className="w-10 h-10 text-muted-foreground" />
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Display Name */}
           <div className="space-y-2">
             <Label htmlFor="display_name" className="text-base font-medium">
@@ -187,12 +271,15 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
                 className="pl-10"
               />
             </div>
+            {profileData.display_name && (
+              <div className="text-xs text-muted-foreground mt-1">Hi, <span className="font-semibold text-rose-500">{profileData.display_name}</span>!</div>
+            )}
           </div>
 
           {/* Partner Selection */}
           <div className="space-y-2">
             <Label htmlFor="partner_id" className="text-base font-medium">
-              Select Your Partner
+              Select or Invite Your Partner
             </Label>
             <SelectPartner
               onSelect={(partnerId: string) => setPartnerId(partnerId)}
@@ -249,42 +336,31 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
             </Popover>
           </div>
 
-          {/* Avatar URL */}
+          {/* First Goal Input */}
           <div className="space-y-2">
-            <Label htmlFor="avatar_url" className="text-base font-medium">
-              Profile Picture URL (optional)
+            <Label htmlFor="first_goal" className="text-base font-medium">
+              First Relationship Goal (optional)
             </Label>
             <Input
-              id="avatar_url"
-              type="url"
-              value={profileData.avatar_url}
-              onChange={(e) => {
-                setProfileData(prev => ({ ...prev, avatar_url: e.target.value }));
-                setAvatarError(false);
-              }}
-              placeholder="https://example.com/your-photo.jpg"
+              id="first_goal"
+              value={profileData.first_goal}
+              onChange={e => setProfileData(prev => ({ ...prev, first_goal: e.target.value }))}
+              placeholder="e.g. Travel to Paris together"
             />
-            {profileData.avatar_url && !avatarError ? (
-              <div className="mt-2 flex flex-col items-center">
-                <img
-                  src={profileData.avatar_url}
-                  alt="Profile preview"
-                  className="w-16 h-16 rounded-full object-cover mx-auto border"
-                  onError={() => setAvatarError(true)}
-                />
-              </div>
-            ) : profileData.avatar_url && avatarError ? (
-              <div className="mt-2 flex flex-col items-center">
-                <img
-                  src="/placeholder.svg"
-                  alt="Fallback avatar"
-                  className="w-16 h-16 rounded-full object-cover mx-auto border bg-muted"
-                />
-                <span className="text-xs text-muted-foreground mt-1">Image not found</span>
-              </div>
-            ) : null}
           </div>
 
+          {/* Love Language Quiz Prompt */}
+          <div className="flex flex-col items-center gap-2 mt-2">
+            <span className="text-xs text-muted-foreground">Want to know your love language?</span>
+            <Button type="button" variant="romantic" className="px-4 py-2 rounded-full" onClick={() => window.location.href = '/dashboard#love-language-quiz'}>
+              Take Love Language Quiz
+            </Button>
+          </div>
+
+          {/* Validation Error */}
+          {validationError && (
+            <div className="text-sm text-red-500 text-center mb-2">{validationError}</div>
+          )}
           {/* Submit Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -300,7 +376,7 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
               disabled={loading}
               className="flex-1 bg-gradient-romantic text-white"
             >
-              {loading ? 'Saving...' : 'Save Profile'}
+              {loading ? 'Saving...' : 'Save & Continue'}
             </Button>
           </div>
         </form>
