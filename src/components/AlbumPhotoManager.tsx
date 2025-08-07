@@ -200,7 +200,7 @@ const AlbumPhotoManager = ({ albumId }: AlbumPhotoManagerProps) => {
             {photos.map(photo => (
               <div key={photo.id} className="relative group min-w-[180px] max-w-[220px] flex-shrink-0">
                 <img
-                  src={signedUrls[photo.id] || ''}
+                  src={signedUrls[photo.id] || 'https://via.placeholder.com/300x200?text=Loading'}
                   alt="Album Photo"
                   className="w-full h-44 object-cover rounded-xl shadow-lg cursor-pointer transition-all duration-200 group-hover:scale-105 group-hover:ring-2 group-hover:ring-rose-400 bg-gray-100 group-hover:brightness-110"
                   onClick={() => {

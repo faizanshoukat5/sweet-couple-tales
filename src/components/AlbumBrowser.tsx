@@ -156,7 +156,7 @@ const AlbumBrowser = () => {
                 {photos.map(photo => (
                   <div key={photo.id} className="relative group min-w-[120px] max-w-[160px] flex-shrink-0">
                     <img
-                      src={signedUrls[photo.id] || ''}
+                      src={signedUrls[photo.id] || 'https://via.placeholder.com/200x150?text=Loading'}
                       alt="Album Photo"
                       className="w-full h-28 object-cover rounded-xl shadow-lg cursor-pointer transition-transform duration-200 group-hover:scale-105 group-hover:ring-2 group-hover:ring-rose-400 bg-gray-100"
                       onClick={() => signedUrls[photo.id] && setPhotoPreview(signedUrls[photo.id])}
