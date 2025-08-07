@@ -819,61 +819,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                     
                     {/* Attachment rendering using the new AttachmentDisplay */}
 
-                    {/* Attachment rendering with lightbox for images */}
-                    {msg.attachment_url && msg.attachment_type === 'image' ? (
-                      <div className="mb-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <div>
-                              <AttachmentDisplay
-                                url={msg.attachment_url}
-                                filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
-                                fileType={msg.attachment_type || 'other'}
-                                fileSize={msg.attachment_size || 0}
-                                className="max-w-xs cursor-zoom-in"
-                              />
-                            </div>
-                          </DialogTrigger>
-                          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-3xl flex items-center justify-center">
-                            <DialogTitle asChild>
-                              <VisuallyHidden>
-                                {msg.attachment_filename || msg.attachment_name || 'Image attachment'}
-                              </VisuallyHidden>
-                            </DialogTitle>
-                            <DialogDescription asChild>
-                              <VisuallyHidden>
-                                {`Full-size preview of image attachment: ${msg.attachment_filename || msg.attachment_name || 'attachment'}`}
-                              </VisuallyHidden>
-                            </DialogDescription>
-                            <img
-                              src={msg.attachment_url}
-                              alt={msg.attachment_filename || msg.attachment_name || 'attachment'}
-                              className="max-h-[80vh] max-w-full rounded-lg shadow-lg"
-                              style={{ margin: '0 auto', display: 'block' }}
-                            />
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    ) : msg.attachment_url && msg.attachment_type === 'voice' ? (
-                      <div className="mb-2">
-                        <VoicePlayer
-                          audioUrl={msg.attachment_url}
-                          duration={msg.voice_duration || 0}
-                          isOwn={isOwn}
-                          className={isOwn ? 'bg-white/10' : 'bg-muted/50'}
-                        />
-                      </div>
-                    ) : msg.attachment_url ? (
-                      <div className="mb-2">
-                        <AttachmentDisplay
-                          url={msg.attachment_url}
-                          filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
-                          fileType={msg.attachment_type || 'other'}
-                          fileSize={msg.attachment_size || 0}
-                          className="max-w-xs"
-                        />
-                      </div>
-                    ) : null}
+                    <ChatAttachmentView msg={msg} isOwn={isOwn} />
                     
                     {/* Message text */}
                     {msg.content && !msg.content.startsWith('📎') && !msg.content.startsWith('🎤') && !msg.attachment_url && (

@@ -88,7 +88,7 @@ export const CustomQuizAttempt: React.FC = () => {
       if (error || !data) {
         setQuiz(null);
       } else {
-        setQuiz(data.quiz as CustomQuiz);
+        setQuiz(data.quiz as unknown as CustomQuiz);
       }
     };
     fetchQuiz();
@@ -131,7 +131,7 @@ export const CustomQuizAttempt: React.FC = () => {
         setQuiz(null);
         setQuizId(null);
       } else {
-        setQuiz(data.quiz as CustomQuiz);
+        setQuiz(data.quiz as unknown as CustomQuiz);
         setQuizId(data.id);
       }
     };

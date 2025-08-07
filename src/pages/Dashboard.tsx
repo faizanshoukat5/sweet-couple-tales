@@ -502,7 +502,7 @@ const Dashboard = () => {
 
         {/* Love Language Quiz */}
         <div className="mt-14" id="love-language-quiz">
-          <LoveLanguageQuiz partnerId={partnerId} />
+          <LoveLanguageQuiz />
         </div>
 
         {/* Partner's Quiz Results */}

@@ -621,7 +621,7 @@ export const LoveLanguageQuiz: React.FC<LoveLanguageQuizProps> = () => {
                     {
                       creator_id: user.id,
                       partner_id: partnerId,
-                      quiz,
+                      quiz: quiz as any,
                       created_at: new Date().toISOString(),
                     },
                   ]);
