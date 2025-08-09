@@ -1,37 +1,54 @@
 import { Heart, Images, MessageCircle, Calendar, Star, Shield } from 'lucide-react';
-import heartFlowers from '@/assets/heart-flowers.png';
 
 const features = [
-  { icon: Heart, title: 'Beautiful Memories', desc: 'Capture moments with photos, tags, and favorites.' },
-  { icon: Images, title: 'Private Albums', desc: 'Organize your story into secure, shared albums.' },
-  { icon: MessageCircle, title: 'Secure Chat', desc: 'Whisper, share, and send attachments privately.' },
-  { icon: Calendar, title: 'Shared Calendar', desc: 'Remember anniversaries and plan sweet days.' },
-  { icon: Star, title: 'Date Ideas', desc: 'Handpicked ideas with ratings and favorites.' },
-  { icon: Shield, title: 'Privacy First', desc: 'Signed URLs and RLS protect your memories.' },
+  {
+    icon: Heart,
+    title: 'Beautiful Memories',
+    desc: 'Save moments with photos, tags, and favorites.'
+  },
+  {
+    icon: Images,
+    title: 'Private Albums',
+    desc: 'Organize photos into albums with secure access.'
+  },
+  {
+    icon: MessageCircle,
+    title: 'Secure Chat',
+    desc: 'Share notes and attachments safely together.'
+  },
+  {
+    icon: Calendar,
+    title: 'Shared Calendar',
+    desc: 'Track important dates and celebrate on time.'
+  },
+  {
+    icon: Star,
+    title: 'Date Ideas',
+    desc: 'Curated ideas with ratings and favorites.'
+  },
+  {
+    icon: Shield,
+    title: 'Your Data, Protected',
+    desc: 'Signed URLs and RLS keep your content private.'
+  }
 ];
 
 export default function FeatureHighlights() {
   return (
-    <section aria-labelledby="highlights-heading" className="relative overflow-hidden py-14 md:py-16 bg-gradient-to-br from-rose-50 via-background to-pink-50">
-      {/* Decorative hearts */}
-      <img src={heartFlowers} alt="romantic hearts decoration" className="pointer-events-none absolute -top-10 -left-10 w-40 opacity-30 select-none" aria-hidden="true" />
-      <img src={heartFlowers} alt="romantic hearts decoration" className="pointer-events-none absolute -bottom-12 -right-8 w-48 rotate-180 opacity-25 select-none" aria-hidden="true" />
-
-      <div className="container mx-auto px-4 animate-fade-in">
-        <header className="mb-8 text-center">
-          <h2 id="highlights-heading" className="font-serif text-3xl md:text-4xl font-extrabold text-primary flex items-center justify-center gap-2">
-            <Heart className="w-6 h-6 text-rose-400 pulse" aria-hidden="true" />
-            Built for two, with love
+    <section aria-labelledby="highlights-heading" className="py-12 animate-fade-in">
+      <div className="container mx-auto px-4">
+        <header className="mb-6">
+          <h2 id="highlights-heading" className="text-2xl font-semibold text-foreground">
+            Everything you need to cherish your story
           </h2>
-          <p className="text-sm md:text-base text-muted-foreground mt-2">Minimal, romantic, and private — everything a couple needs.</p>
+          <p className="text-sm text-muted-foreground mt-1">Minimal features, maximum love.</p>
         </header>
-
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map(({ icon: Icon, title, desc }) => (
-            <li key={title} className="group rounded-2xl bg-card/90 border border-primary/10 shadow-sm hover:shadow-lg transition-shadow hover-scale">
-              <div className="flex items-start gap-3 p-5">
-                <span className="inline-flex p-2.5 rounded-lg bg-muted text-primary">
-                  <Icon className="w-5 h-5 text-rose-500" aria-hidden="true" />
+            <li key={title} className="group border rounded-xl bg-card hover-scale">
+              <div className="flex items-start gap-3 p-4">
+                <span className="inline-flex p-2 rounded-lg bg-muted text-primary">
+                  <Icon className="w-5 h-5" aria-hidden="true" />
                 </span>
                 <div>
                   <h3 className="font-medium text-foreground">{title}</h3>
@@ -45,4 +62,3 @@ export default function FeatureHighlights() {
     </section>
   );
 }
-
