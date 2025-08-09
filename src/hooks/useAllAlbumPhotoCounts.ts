@@ -10,7 +10,6 @@ export function useAllAlbumPhotoCounts() {
     let mounted = true;
     async function fetchCounts() {
       setLoading(true);
-      // Fetch all album photos (assuming table: album_photos, with album_id)
       const { data, error } = await supabase
         .from('album_photos')
         .select('album_id');
@@ -20,7 +19,6 @@ export function useAllAlbumPhotoCounts() {
         setLoading(false);
         return;
       }
-      // Count photos per album
       const map: Record<string, number> = {};
       data.forEach((row: any) => {
         if (row.album_id) {
@@ -31,7 +29,25 @@ export function useAllAlbumPhotoCounts() {
       setLoading(false);
     }
     fetchCounts();
-    return () => { mounted = false; };
+
+    // Realtime updates to reflect new/deleted photos per album
+    const channel = supabase
+      .channel('album-photos-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'album_photos' }, async () => {
+        // Refresh counts on any change
+        const { data } = await supabase.from('album_photos').select('album_id');
+        if (!mounted) return;
+        const map: Record<string, number> = {};
+        (data || []).forEach((row: any) => {
+          if (row.album_id) {
+            map[row.album_id] = (map[row.album_id] || 0) + 1;
+          }
+        });
+        setCounts(map);
+      })
+      .subscribe();
+
+    return () => { mounted = false; try { supabase.removeChannel(channel); } catch {} };
   }, []);
 
   return { albumPhotoCounts: counts, loading };
