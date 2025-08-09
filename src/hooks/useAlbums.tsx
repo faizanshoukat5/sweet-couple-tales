@@ -9,6 +9,7 @@ export interface Album {
   name: string;
   description?: string;
   created_at: string;
+  order?: number;
 }
 
 export const useAlbums = () => {
@@ -25,9 +26,35 @@ export const useAlbums = () => {
       .from('albums')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true });
+      .order('order', { ascending: true });
     if (!error) setAlbums(data || []);
     setLoading(false);
+  };
+  // Edit album (name/description)
+  const updateAlbum = async (id: string, updates: { name?: string; description?: string }) => {
+    const { data, error } = await supabase
+      .from('albums')
+      .update(updates)
+      .eq('id', id)
+      .select();
+    if (!error && data) {
+      setAlbums((prev) => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+      return data[0];
+    }
+    return undefined;
+  };
+
+  // Update album order (array of album ids in new order)
+  const updateAlbumOrder = async (orderedIds: string[]) => {
+    // Update each album's order field in the DB
+    await Promise.all(orderedIds.map((id, idx) =>
+      supabase.from('albums').update({ order: idx } as any).eq('id', id)
+    ));
+    // Update local state
+    setAlbums(prev => {
+      const map = Object.fromEntries(prev.map(a => [a.id, a]));
+      return orderedIds.map((id, idx) => ({ ...map[id], order: idx }));
+    });
   };
 
   const addAlbum = async (name: string, description?: string) => {
@@ -81,7 +108,7 @@ export const useAlbums = () => {
     };
   }, [user]);
 
-  return { albums, loading, addAlbum, deleteAlbum };
+  return { albums, loading, addAlbum, deleteAlbum, updateAlbum, updateAlbumOrder };
 };
 
 export const useAlbumAsPDF = (album, albumMemories, albumPhotos, signedUrls, memories) => {
