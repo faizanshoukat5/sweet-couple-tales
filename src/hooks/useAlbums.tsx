@@ -53,6 +53,34 @@ export const useAlbums = () => {
 
   useEffect(() => { fetchAlbums(); }, [user]);
 
+  // Realtime updates for albums: reflect inserts/updates/deletes instantly
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('albums-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'albums' }, (payload) => {
+        const newAlbum: any = (payload as any).new;
+        if (!newAlbum || newAlbum.user_id !== user.id) return;
+        setAlbums((prev) => [...prev, newAlbum]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'albums' }, (payload) => {
+        const updated: any = (payload as any).new;
+        if (!updated || updated.user_id !== user.id) return;
+        setAlbums((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'albums' }, (payload) => {
+        const oldRow: any = (payload as any).old;
+        if (!oldRow) return;
+        setAlbums((prev) => prev.filter((a) => a.id !== oldRow.id));
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [user]);
+
   return { albums, loading, addAlbum, deleteAlbum };
 };
 

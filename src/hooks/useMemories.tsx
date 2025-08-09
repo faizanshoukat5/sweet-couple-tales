@@ -294,6 +294,37 @@ export const useMemories = () => {
     fetchMemories();
   }, [user]);
 
+  // Realtime updates for memories: reflect inserts/updates/deletes instantly
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('memories-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memories' }, (payload) => {
+        const newMemory: any = (payload as any).new;
+        if (!newMemory || newMemory.user_id !== user.id) return;
+        setMemories((prev) => {
+          const filtered = prev.filter((m) => m.id !== newMemory.id);
+          return [newMemory, ...filtered];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'memories' }, (payload) => {
+        const updated: any = (payload as any).new;
+        if (!updated || updated.user_id !== user.id) return;
+        setMemories((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'memories' }, (payload) => {
+        const oldRow: any = (payload as any).old;
+        if (!oldRow) return;
+        setMemories((prev) => prev.filter((m) => m.id !== oldRow.id));
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [user]);
+
   return {
     memories,
     loading,
