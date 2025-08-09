@@ -3,7 +3,6 @@ import Features from "@/components/Features";
 import Timeline from "@/components/Timeline";
 import CallToAction from "@/components/CallToAction";
 import HomeAlbumsPreview from "@/components/HomeAlbumsPreview";
-import HomeDashboardPreview from "@/components/HomeDashboardPreview";
 
 const Index = () => {
   return (
@@ -13,7 +12,6 @@ const Index = () => {
       <Timeline />
       {/* Albums preview mirrors dashboard albums section */}
       <HomeAlbumsPreview />
-      <HomeDashboardPreview />
       <CallToAction />
     </div>
   );
