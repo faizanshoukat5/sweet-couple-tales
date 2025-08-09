@@ -52,6 +52,7 @@ const Navigation = () => {
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/dashboard', label: 'My Dashboard', icon: Heart, requireAuth: true },
+    { path: '/faq', label: 'FAQ', icon: User },
   ];
 
   const getInitials = (email: string) => {
