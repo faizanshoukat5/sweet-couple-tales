@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Memory, useMemories } from '@/hooks/useMemories';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import EditMemoryModal from './EditMemoryModal';
+import { useSignedMemoryPhotoUrls } from '@/hooks/useSignedMemoryPhotoUrls';
+import { useResponsiveMemoryImage } from '@/hooks/useResponsiveMemoryImage';
 
 export interface MemoryCardProps {
   memory: Memory;
@@ -18,6 +20,24 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   const { toggleFavorite, deleteMemory } = useMemories();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Prepare memory photos (ensure cover photo is included) for signed URL resolution
+  const photoInputs = useMemo(() => {
+    const paths = [...memory.photos];
+    if (memory.cover_photo && !paths.includes(memory.cover_photo)) {
+      paths.unshift(memory.cover_photo); // prioritize cover for faster signed URL fetch
+    }
+    return paths.map(p => ({ url: p, memoryId: memory.id, memoryTitle: memory.title }));
+  }, [memory]);
+  const signed = useSignedMemoryPhotoUrls(photoInputs);
+
+  const coverPath = memory.cover_photo || memory.photos[0];
+  // Only fall back to raw path if it's already a full URL; avoid using storage path directly which breaks images
+  const resolvedCover = coverPath ? (signed[coverPath] || (coverPath.startsWith('http') ? coverPath : undefined)) : undefined;
+  const firstPhoto = resolvedCover;
+  const storagePath = coverPath && !coverPath.startsWith('http') ? coverPath : undefined;
+  const { srcset, fallback } = useResponsiveMemoryImage(storagePath);
 
   const handleToggleFavorite = async () => {
     await toggleFavorite(memory.id, !memory.is_favorite);
@@ -42,13 +62,20 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
             {/* Photo Preview */}
-            {memory.photos.length > 0 && (
+            {firstPhoto && !imageError && (
               <div className="flex-shrink-0">
                 <img
-                  src={memory.photos[0]}
+                  src={firstPhoto}
                   alt={memory.title}
                   className="w-16 h-16 object-cover rounded-lg"
+                  loading="lazy"
+                  onError={() => setImageError(true)}
                 />
+              </div>
+            )}
+            {(!firstPhoto || imageError) && (
+              <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-muted/40 flex items-center justify-center text-xs text-muted-foreground">
+                No Photo
               </div>
             )}
 
@@ -133,14 +160,19 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   return (
     <Card className="group transition-all duration-200 hover:shadow-lg hover:-translate-y-1 overflow-hidden">
       {/* Photo */}
-      {memory.photos.length > 0 && (
+  {firstPhoto && !imageError && (
         <div className="relative aspect-video overflow-hidden">
           <img
-            src={memory.photos[0]}
+            src={fallback || firstPhoto}
+            srcSet={srcset || undefined}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             alt={memory.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 blur-up"
+            loading="lazy"
+            onError={() => setImageError(true)}
+            onLoad={(e) => e.currentTarget.classList.add('loaded')}
           />
-          {memory.photos.length > 1 && (
+      {memory.photos.length > 1 && !imageError && (
             <Badge className="absolute top-2 right-2 bg-black/50 text-white">
               +{memory.photos.length - 1}
             </Badge>
@@ -158,6 +190,24 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
           >
             <Heart className={cn("w-4 h-4", memory.is_favorite && "fill-current")} />
           </Button>
+        </div>
+      )}
+      {(!firstPhoto || imageError) && (
+        <div className="relative aspect-video overflow-hidden flex items-center justify-center bg-muted/40">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleFavorite}
+            className={cn(
+              "absolute top-2 left-2 p-2 backdrop-blur-sm",
+              memory.is_favorite 
+                ? "bg-white/20 text-red-500" 
+                : "bg-black/20 text-white hover:bg-white/30"
+            )}
+          >
+            <Heart className={cn("w-4 h-4", memory.is_favorite && "fill-current")} />
+          </Button>
+          <span className="text-xs text-muted-foreground">No Photo</span>
         </div>
       )}
 

@@ -15,6 +15,7 @@ export interface Memory {
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
+  cover_photo?: string | null; // storage path of chosen cover
 }
 
 export interface CreateMemoryData {
@@ -24,6 +25,7 @@ export interface CreateMemoryData {
   photos?: string[];
   tags?: string[];
   is_favorite?: boolean;
+  cover_photo?: string | null;
 }
 
 export const useMemories = () => {
@@ -44,7 +46,42 @@ export const useMemories = () => {
         .order('memory_date', { ascending: false });
 
       if (error) throw error;
-      setMemories(data || []);
+      const normalized: Memory[] = [];
+      const updates: { id: string; photos: string[]; cover_photo?: string | null }[] = [];
+      (data || []).forEach((m: any) => {
+        const originalPhotos: string[] = m.photos || [];
+        let changed = false;
+        const converted = originalPhotos.map(p => {
+          if (p && p.includes('/storage/v1/object/public/memory-photos/')) {
+            const path = p.split('/storage/v1/object/public/memory-photos/')[1];
+            if (path) { changed = true; return path; }
+          }
+          return p;
+        });
+        let cover = m.cover_photo;
+        if (!cover && converted.length > 0) {
+          cover = converted[0];
+          changed = true; // ensure we persist cover
+        } else if (cover && cover.includes('/storage/v1/object/public/memory-photos/')) {
+          const cpath = cover.split('/storage/v1/object/public/memory-photos/')[1];
+            if (cpath) { cover = cpath; changed = true; }
+        }
+        if (changed) {
+          updates.push({ id: m.id, photos: converted, cover_photo: cover });
+        }
+        normalized.push({ ...m, photos: converted, cover_photo: cover });
+      });
+      setMemories(normalized);
+      // Persist any needed migrations silently (no toast)
+      if (updates.length > 0) {
+        try {
+          await Promise.all(
+            updates.map(u => supabase.from('memories').update({ photos: u.photos, cover_photo: u.cover_photo }).eq('id', u.id))
+          );
+        } catch (e) {
+          console.warn('Silent memory photo path normalization failed', e);
+        }
+      }
     } catch (error) {
       console.error('Error fetching memories:', error);
       toast({
@@ -94,6 +131,10 @@ export const useMemories = () => {
     if (!user) throw new Error('User not authenticated');
 
     try {
+      // If the backend hasn't migrated yet (no cover_photo column), strip it out to avoid 400
+      if ('cover_photo' in updates && updates.cover_photo === undefined) {
+        delete (updates as any).cover_photo;
+      }
       const { data, error } = await supabase
         .from('memories')
         .update(updates)
@@ -167,12 +208,8 @@ export const useMemories = () => {
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('memory-photos')
-        .getPublicUrl(fileName);
-
-      return data.publicUrl;
+  // Return the storage path (not a public URL). Components will request signed URLs when rendering.
+  return fileName;
     } catch (error) {
       console.error('Error uploading photo:', error);
       toast({

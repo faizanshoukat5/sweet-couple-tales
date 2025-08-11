@@ -10,6 +10,7 @@ export interface Album {
   description?: string;
   created_at: string;
   order?: number;
+  cover_photo?: string | null; // storage path for album cover
 }
 
 export const useAlbums = () => {
@@ -31,7 +32,7 @@ export const useAlbums = () => {
     setLoading(false);
   };
   // Edit album (name/description)
-  const updateAlbum = async (id: string, updates: { name?: string; description?: string }) => {
+  const updateAlbum = async (id: string, updates: { name?: string; description?: string; cover_photo?: string | null }) => {
     const { data, error } = await supabase
       .from('albums')
       .update(updates)
@@ -80,36 +81,7 @@ export const useAlbums = () => {
 
   useEffect(() => { fetchAlbums(); }, [user]);
 
-// ...existing code...
-// ...existing code...
-  // Realtime updates for albums: reflect inserts/updates/deletes instantly
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('albums-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'albums' }, (payload) => {
-        const newAlbum: any = (payload as any).new;
-        if (!newAlbum || newAlbum.user_id !== user.id) return;
-        setAlbums((prev) => [...prev, newAlbum]);
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'albums' }, (payload) => {
-        const updated: any = (payload as any).new;
-        if (!updated || updated.user_id !== user.id) return;
-        setAlbums((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'albums' }, (payload) => {
-        const oldRow: any = (payload as any).old;
-        if (!oldRow) return;
-        setAlbums((prev) => prev.filter((a) => a.id !== oldRow.id));
-      })
-      .subscribe();
-
-    return () => {
-      try { supabase.removeChannel(channel); } catch {}
-    };
-  }, [user]);
-  // Realtime updates for albums: reflect inserts/updates/deletes instantly
+  // Realtime updates for albums (single instance)
   useEffect(() => {
     if (!user) return;
 
@@ -138,7 +110,11 @@ export const useAlbums = () => {
   }, [user]);
 
 // ...existing code...
-  return { albums, loading, addAlbum, deleteAlbum, updateAlbum, updateAlbumOrder };
+  const setAlbumCover = async (albumId: string, photoPath: string | null) => {
+    await updateAlbum(albumId, { cover_photo: photoPath });
+  };
+
+  return { albums, loading, addAlbum, deleteAlbum, updateAlbum, updateAlbumOrder, setAlbumCover };
 };
 
 export const useAlbumAsPDF = (album, albumMemories, albumPhotos, signedUrls, memories) => {

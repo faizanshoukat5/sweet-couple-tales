@@ -20,12 +20,15 @@ import {
   X,
   Download,
   Bell,
-  BellOff
+  BellOff,
+  MessageCircleHeart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import heartFlowers from '@/assets/heart-flowers.png';
 import { useMemories } from '@/hooks/useMemories';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useChatStatus } from '@/hooks/useChatStatus';
+import { usePartnerId } from '@/hooks/usePartnerId';
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
@@ -34,6 +37,9 @@ const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const partnerId = usePartnerId();
+  const { unreadCount } = useChatStatus(partnerId);
+  const chatOpenedOnce = (() => { try { return localStorage.getItem('chatOpenedOnce') === '1'; } catch { return false; } })();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -100,6 +106,28 @@ const Navigation = () => {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden md:flex items-center gap-2 rounded-full px-3 py-2 relative"
+                onClick={() => navigate('/dashboard#chat')}
+                title="Open chat"
+              >
+                <span className="relative">
+                  <MessageCircleHeart className="w-5 h-5" />
+                  {!chatOpenedOnce && (
+                    <span className="absolute -inset-1 rounded-full animate-ping bg-rose-400/30" />
+                  )}
+                </span>
+                <span className="hidden lg:inline">Chat</span>
+                {unreadCount > 0 && (
+                  <span className="ml-2 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            )}
             {user ? (
               <>
                 {/* Notifications - Desktop */}

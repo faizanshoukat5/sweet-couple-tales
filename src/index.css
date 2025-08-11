@@ -124,6 +124,13 @@ All colors MUST be HSL.
 
 /* Custom animations for lightbox */
 @layer utilities {
+  /* Blur-up image placeholder pattern */
+  .blur-up { filter: blur(20px); transform: scale(1.05); transition: filter .4s ease, transform .4s ease; }
+  .blur-up.loaded { filter: blur(0); transform: scale(1); }
+
+  /* Masonry layout using CSS columns (fallback simple) */
+  .masonry { column-gap: 1.5rem; display:block; }
+  .masonry-item { break-inside: avoid; margin-bottom: 1.5rem; }
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
   }
@@ -154,3 +161,8 @@ All colors MUST be HSL.
     }
   }
 }
+
+/* Responsive masonry columns */
+@media (min-width: 768px) { .masonry { column-count: 2; } }
+@media (min-width: 1024px) { .masonry { column-count: 3; } }
+@media (min-width: 1280px) { .masonry { column-count: 4; } }

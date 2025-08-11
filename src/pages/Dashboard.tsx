@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemories } from '@/hooks/useMemories';
+import { useAlbums } from '@/hooks/useAlbums';
+import { useGoals } from '@/hooks/useGoals';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useImportantDates } from '@/hooks/useImportantDates';
 import { Button } from '@/components/ui/button';
@@ -11,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Heart, Calendar, Tag, Search, Grid, List, User } from 'lucide-react';
 import CreateMemoryModal from '@/components/CreateMemoryModal';
 import MemoryCard from '@/components/MemoryCard';
+import VirtualizedMemoryList from '@/components/VirtualizedMemoryList';
 import ProfileSetup from '@/components/ProfileSetup';
 import GoalsList from '@/components/GoalsList';
 import ImportantDates from '@/components/ImportantDates';
@@ -19,45 +22,153 @@ import AlbumBrowser from '@/components/AlbumBrowser';
 import SharedCalendar from '@/components/SharedCalendar';
 import EnhancedChat from '@/components/EnhancedChat';
 import { useLocation } from 'react-router-dom';
-
-
 import { MoodTracker } from '@/components/MoodTracker';
 import { LoveNotesWidget } from '@/components/LoveNotesWidget';
 import { DateIdeasWidget } from '@/components/DateIdeasWidget';
 import { LoveLanguageQuiz, PartnerQuizResults } from '@/components';
 import { useMoods } from '@/hooks/useMoods';
 import { supabase } from '@/integrations/supabase/client';
+import SectionCard from '@/components/SectionCard';
+import StatsBar, { StatCard } from '@/components/StatsBar';
+import QuickActionsFab from '@/components/QuickActionsFab';
+import ChatLauncher from '@/components/ChatLauncher';
+import { useChatStatus } from '@/hooks/useChatStatus';
+
+// ChatSidePanel: focus trap, ESC close, improved header, smooth slide
+function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
+  const panelRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const focusable = panelRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable && focusable.length) {
+      focusable[0].focus();
+    }
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Tab' && focusable && focusable.length) {
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+
+  return (
+    <aside
+      ref={panelRef}
+      className={
+        'fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full bg-white rounded-l-2xl shadow-2xl border-l border-rose-100 flex flex-col transition-transform duration-300 ease-in-out ' +
+        (open ? 'translate-x-0' : 'translate-x-full')
+      }
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+    >
+      <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-rose-50 to-pink-50 rounded-tl-2xl shadow-sm">
+        <h3 className="font-serif text-lg font-bold text-rose-600 flex items-center gap-2"><Heart className="w-5 h-5" /> Chat</h3>
+        <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8" aria-label="Close chat">✕</Button>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        {partnerId === undefined ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            Looking for your partner...
+          </div>
+        ) : !partnerId ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+            <Heart className="w-16 h-16 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">No Partner Connected</h3>
+              <p className="text-muted-foreground mb-4">Complete your profile setup and select your partner to start chatting together!</p>
+              <Button variant="romantic" onClick={() => { onClose(); setShowProfileSetup(true); }}>
+                <User className="w-4 h-4 mr-2" /> Setup Profile & Partner
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <EnhancedChat partnerId={partnerId} />
+        )}
+      </div>
+    </aside>
+  );
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { memories, loading } = useMemories();
+  const { albums } = useAlbums();
+  const { goals } = useGoals();
   const { permission, sendInstantNotification, requestPermission } = useNotifications();
   const { dates: importantDates } = useImportantDates();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'favorites' | 'date-asc'>('newest');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [showAlbumBrowser, setShowAlbumBrowser] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [chatOpenedOnce, setChatOpenedOnce] = useState<boolean>(() => {
+    try { return localStorage.getItem('chatOpenedOnce') === '1'; } catch { return false; }
+  });
   const [profile, setProfile] = useState<{ avatar_url?: string, display_name?: string } | null>(null);
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [partnerProfile, setPartnerProfile] = useState<{ display_name?: string; email?: string; avatar_url?: string } | null>(null);
   const location = useLocation();
+  const { unreadCount, partnerTyping, isOnline } = useChatStatus(partnerId);
+  // Derived: upcoming important dates within next 30 days
+  const upcomingDates = importantDates.filter(d => {
+    const date = new Date(d.date);
+    const now = new Date();
+    const diff = (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 30;
+  });
 
-  const { getMood, setMood } = useMoods();
-  const filteredMemories = memories.filter(memory => {
-    const matchesSearch = !searchTerm || 
-      memory.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      memory.content?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 250);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  let filteredMemories = memories.filter(memory => {
+    const matchesSearch = !debouncedSearch || 
+      memory.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      memory.content?.toLowerCase().includes(debouncedSearch.toLowerCase());
     
     const matchesTag = !selectedTag || memory.tags.includes(selectedTag);
     
     return matchesSearch && matchesTag;
   });
 
+  // Apply sort
+  filteredMemories = [...filteredMemories].sort((a,b) => {
+    if (sortMode === 'favorites') {
+      if (a.is_favorite === b.is_favorite) return b.memory_date.localeCompare(a.memory_date);
+      return a.is_favorite ? -1 : 1;
+    }
+    if (sortMode === 'oldest') return a.memory_date.localeCompare(b.memory_date);
+    if (sortMode === 'date-asc') return a.memory_date.localeCompare(b.memory_date);
+    // newest default
+    return b.memory_date.localeCompare(a.memory_date);
+  });
+
   const favoriteMemories = filteredMemories.filter(memory => memory.is_favorite);
   const allTags = [...new Set(memories.flatMap(memory => memory.tags))];
+
+  // Debug: reset filters on mount once (in case stale state hid list)
+  useEffect(() => {
+    setSelectedTag(null);
+    setSearchTerm('');
+  }, []);
 
 
   useEffect(() => {
@@ -114,17 +225,22 @@ const Dashboard = () => {
         '#goals': 'goals',
         '#dates': 'dates',
         '#memories': 'memories',
+        '#chat': 'chat',
       };
       const sectionId = sectionMap[hash];
       if (sectionId) {
         let attempts = 0;
         const scrollToSection = () => {
-          const el = document.getElementById(sectionId) || document.querySelector(`.${sectionId}-section`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
+          if (sectionId === 'chat') {
+            setShowChat(true);
           } else if (attempts < 5) {
-            attempts++;
-            setTimeout(scrollToSection, 200);
+            const el = document.getElementById(sectionId) || document.querySelector(`.${sectionId}-section`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              attempts++;
+              setTimeout(scrollToSection, 200);
+            }
           }
         };
         setTimeout(scrollToSection, 300);
@@ -271,18 +387,28 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Search and Filters */}
+        {/* Stats Summary (refactored) */}
+        <StatsBar className="mb-10">
+          <StatCard label="Memories" value={memories.length} meta={<><Heart className="w-3 h-3" /> {memories.filter(m=>m.is_favorite).length} favorites</>} />
+          <StatCard label="Albums" value={albums.length} gradient="bg-gradient-to-br from-pink-500 to-rose-400" meta={<span>Organized</span>} />
+          <StatCard label="Goals" value={goals.length} gradient="bg-gradient-to-br from-rose-400 to-pink-300" meta={<span>{goals.filter(g=>g.completed).length} completed</span>} />
+          <StatCard label="Upcoming Dates" value={upcomingDates.length} gradient="bg-gradient-to-br from-pink-400 to-rose-300" meta={<span>Next 30 days</span>} />
+          <StatCard label="Partner" value={partnerProfile?.display_name || partnerProfile?.email || '—'} gradient="bg-gradient-to-br from-rose-300 to-pink-200 text-rose-800" meta={<span>Connection</span>} className="hidden xl:flex" />
+        </StatsBar>
+
+        {/* Search, Filters & Sort */}
         <Card className="mb-10 shadow-xl border-0 bg-white/90">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row gap-6 items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rose-300 w-5 h-5" />
-                <Input
-                  placeholder="Search your memories..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 py-3 rounded-xl border-rose-200 focus:ring-rose-300 text-lg"
-                />
+                 <Input
+                   ref={searchRef}
+                   placeholder="Search your memories..."
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   className="pl-12 py-3 rounded-xl border-rose-200 focus:ring-rose-300 text-lg"
+                 />
               </div>
               <div className="flex items-center gap-3">
                 <Button
@@ -303,10 +429,24 @@ const Dashboard = () => {
                 >
                   <List className="w-5 h-5" />
                 </Button>
+                <div className="relative">
+                  <select
+                    value={sortMode}
+                    onChange={e => setSortMode(e.target.value as any)}
+                    className="appearance-none pl-4 pr-10 py-2 rounded-full border border-rose-200 bg-white text-rose-600 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    title="Sort memories"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="favorites">Favorites First</option>
+                    <option value="date-asc">Date Asc</option>
+                  </select>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-rose-400 text-xs">▼</span>
+                </div>
               </div>
             </div>
-            {allTags.length > 0 && (
-              <div className="mt-6 flex flex-wrap gap-2">
+             {allTags.length > 0 && (
+               <div className="mt-6 flex gap-2 overflow-x-auto w-full pb-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <span className="text-sm text-muted-foreground mr-2">Tags:</span>
                 <Button
                   variant={selectedTag === null ? 'romantic' : 'outline'}
@@ -328,170 +468,177 @@ const Dashboard = () => {
                     {tag}
                   </Button>
                 ))}
+                 {(selectedTag !== null || debouncedSearch) && (
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => { setSelectedTag(null); setSearchTerm(''); searchRef.current?.focus(); }}
+                     className="rounded-full px-4 whitespace-nowrap"
+                   >
+                     Clear filters ✕
+                   </Button>
+                 )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Memory Tabs */}
-        <div className="memory-section">
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-10 bg-rose-50 rounded-xl shadow-inner">
-              <TabsTrigger value="all" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
-                <Calendar className="w-5 h-5" />
-                All Memories <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{filteredMemories.length}</span>
-              </TabsTrigger>
-              <TabsTrigger value="favorites" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
-                <Heart className="w-5 h-5" />
-                Favorites <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{favoriteMemories.length}</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all">
-              {filteredMemories.length === 0 ? (
-                <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
-                  <CardContent className="p-12 text-center">
-                    <Calendar className="w-16 h-16 text-rose-200 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold mb-2 text-rose-600">No memories found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      {memories.length === 0 
-                        ? "Start creating your beautiful love story by adding your first memory!"
-                        : "Try adjusting your search or filters to find what you're looking for."
-                      }
-                    </p>
-                    <Button onClick={() => setShowCreateModal(true)} variant="romantic" className="px-6 py-3 text-lg rounded-full">
-                      <Plus className="w-5 h-5 mr-2" />
-                      Create Your First Memory
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className={
-                  viewMode === 'grid' 
-                    ? "grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "space-y-6"
-                }>
-                  {filteredMemories.map(memory => (
-                    <MemoryCard 
-                      key={memory.id} 
-                      memory={memory} 
-                      viewMode={viewMode}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="favorites">
-              {favoriteMemories.length === 0 ? (
-                <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
-                  <CardContent className="p-12 text-center">
-                    <Heart className="w-16 h-16 text-rose-200 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold mb-2 text-rose-600">No favorite memories yet</h3>
-                    <p className="text-muted-foreground">
-                      Mark your most special memories as favorites by clicking the heart icon!
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className={
-                  viewMode === 'grid' 
-                    ? "grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                    : "space-y-6"
-                }>
-                  {favoriteMemories.map(memory => (
-                    <MemoryCard 
-                      key={memory.id} 
-                      memory={memory} 
-                      viewMode={viewMode}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+        {/* Memory Debug Info */}
+        <div className="mb-4 text-xs text-rose-500/70 font-mono space-y-1">
+          <div>memories: {memories.length} | filtered: {filteredMemories.length} | favorites: {favoriteMemories.length}</div>
+          {memories.length > 0 && (
+            <div className="truncate">titles: {memories.map(m=>m.title).join(' • ')}</div>
+          )}
         </div>
+        {/* Memory Tabs */}
+        <SectionCard
+          id="memories"
+          title="Memories"
+          subtitle="Browse, filter & cherish your story"
+          icon={<Calendar className="w-6 h-6" />}
+          padded={false}
+          className="memory-section"
+        >
+          <div className="p-6">
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-10 bg-rose-50 rounded-xl shadow-inner">
+                <TabsTrigger value="all" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
+                  <Calendar className="w-5 h-5" />
+                  All <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{filteredMemories.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="favorites" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
+                  <Heart className="w-5 h-5" />
+                  Favorites <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{favoriteMemories.length}</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="all">
+                {filteredMemories.length === 0 ? (
+                  <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
+                    <CardContent className="p-12 text-center">
+                      <Calendar className="w-16 h-16 text-rose-200 mx-auto mb-4" />
+                      <h3 className="text-2xl font-bold mb-2 text-rose-600">No memories found</h3>
+                      <p className="text-muted-foreground mb-6">
+                        {memories.length === 0
+                          ? 'Start creating your beautiful love story by adding your first memory!'
+                          : 'Try adjusting your search or filters to find what you\'re looking for.'}
+                      </p>
+                      <Button onClick={() => setShowCreateModal(true)} variant="romantic" className="px-6 py-3 text-lg rounded-full">
+                        <Plus className="w-5 h-5 mr-2" />
+                        Create Your First Memory
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  viewMode === 'grid' ? (
+                    <VirtualizedMemoryList items={filteredMemories} viewMode="grid" />
+                  ) : (
+                    <div className="space-y-6">
+                      {filteredMemories.map(memory => (
+                        <MemoryCard key={memory.id} memory={memory} viewMode={viewMode} />
+                      ))}
+                    </div>
+                  )
+                )}
+              </TabsContent>
+              <TabsContent value="favorites">
+                {favoriteMemories.length === 0 ? (
+                  <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
+                    <CardContent className="p-12 text-center">
+                      <Heart className="w-16 h-16 text-rose-200 mx-auto mb-4" />
+                      <h3 className="text-2xl font-bold mb-2 text-rose-600">No favorite memories yet</h3>
+                      <p className="text-muted-foreground">
+                        Mark your most special memories as favorites by clicking the heart icon!
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  viewMode === 'grid' ? (
+                    <VirtualizedMemoryList items={favoriteMemories} viewMode="grid" />
+                  ) : (
+                    <div className="space-y-6">
+                      {favoriteMemories.map(memory => (
+                        <MemoryCard key={memory.id} memory={memory} viewMode={viewMode} />
+                      ))}
+                    </div>
+                  )
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </SectionCard>
 
         {/* Goals List */}
         <div className="mt-14" id="goals">
-          <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
-            <CardHeader className="flex flex-row items-center gap-3 mb-2">
-              <span className="bg-rose-100 text-rose-600 rounded-full p-2"><Plus className="w-5 h-5" /></span>
-              <CardTitle className="font-serif text-2xl font-bold text-rose-600">Your Shared Goals & Bucket List</CardTitle>
-            </CardHeader>
+          <SectionCard
+            title="Your Shared Goals & Bucket List"
+            subtitle="Track dreams you build together"
+            icon={<Plus className="w-6 h-6" />}
+            padded
+          >
             <GoalsList />
-          </Card>
+          </SectionCard>
         </div>
 
         {/* Important Dates */}
         <div className="mt-14" id="dates">
-          <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
-            <CardHeader className="flex flex-row items-center gap-3 mb-2">
-              <span className="bg-rose-100 text-rose-600 rounded-full p-2"><Calendar className="w-5 h-5" /></span>
-              <CardTitle className="font-serif text-2xl font-bold text-rose-600">Important Dates & Anniversaries</CardTitle>
-            </CardHeader>
+          <SectionCard
+            title="Important Dates & Anniversaries"
+            subtitle="Never miss a special moment"
+            icon={<Calendar className="w-6 h-6" />}
+            padded
+          >
             <ImportantDates />
-          </Card>
+          </SectionCard>
         </div>
 
-        {/* Albums List - Enhanced */}
-        <div className="mt-14" id="albums">
-          <div className="relative bg-gradient-to-br from-rose-50 via-white to-pink-100 rounded-2xl shadow-xl border-0 p-0 overflow-hidden">
-            {/* Decorative background */}
-            <div className="absolute inset-0 pointer-events-none opacity-30" style={{background: 'radial-gradient(circle at 80% 20%, #fbb6ce 0%, transparent 70%)'}} />
-            <div className="relative z-10 p-8 pb-4">
-              <div className="flex items-center gap-4 mb-6">
-                <span className="bg-rose-200 text-rose-700 rounded-full p-3 shadow"><Grid className="w-7 h-7" /></span>
-                <div>
-                  <h2 className="font-serif text-3xl font-extrabold text-rose-600 mb-1">Your Photo Albums</h2>
-                  <p className="text-rose-500 text-base font-medium">Relive your favorite moments together</p>
-                </div>
-              </div>
-              {/* Album carousel preview */}
-              <div className="overflow-x-auto pb-2 mb-6 -mx-2">
-                <div className="flex gap-6 px-2 min-w-[320px]">
-                  {/* Replace with real album cards if available */}
-                  <AlbumsList cardStyle="carousel" />
-                  {/* Example placeholder cards if AlbumsList is empty */}
-                  {/*
-                  <div className="w-40 h-48 bg-white rounded-xl shadow flex flex-col items-center justify-center border border-rose-100 hover:shadow-lg transition-all cursor-pointer">
-                    <img src="/placeholder.svg" alt="Album" className="w-24 h-24 object-cover rounded-lg mb-2" />
-                    <span className="font-semibold text-rose-600">Anniversary</span>
-                    <span className="text-xs text-muted-foreground mt-1">12 photos</span>
-                  </div>
-                  */}
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button variant="romantic" onClick={() => setShowAlbumBrowser(true)} className="rounded-full px-7 py-3 text-lg font-semibold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
-                  <Grid className="w-5 h-5 mr-1" />
-                  View All Albums
+        {/* Albums Section */}
+        <section id="albums" className="mt-14">
+          <SectionCard
+            title="Photo Albums"
+            subtitle="Organize and revisit your journey together"
+            icon={<Grid className="w-6 h-6" />}
+            actions={
+              <div className="flex flex-wrap gap-3">
+                <Button variant="outline" onClick={() => setShowAlbumBrowser(true)} className="rounded-full px-6">
+                  <Grid className="w-4 h-4 mr-2" /> Manage
+                </Button>
+                <Button variant="romantic" onClick={() => setShowAlbumBrowser(true)} className="rounded-full px-6">
+                  + Add / View All
                 </Button>
               </div>
-            </div>
-            {showAlbumBrowser && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full relative p-6">
-                  <Button className="absolute top-2 right-2" size="icon" variant="ghost" onClick={() => setShowAlbumBrowser(false)}>
+            }
+            padded
+          >
+            <AlbumsList cardStyle="carousel" />
+          </SectionCard>
+          {showAlbumBrowser && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-2 sm:px-4">
+              <div className="bg-white/95 border border-rose-100 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden overflow-x-hidden relative">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-gradient-to-r from-rose-50 to-pink-50">
+                  <h3 className="font-semibold text-rose-600 flex items-center gap-2 text-sm sm:text-base"><Grid className="w-4 h-4" /> All Albums</h3>
+                  <Button size="icon" variant="ghost" onClick={() => setShowAlbumBrowser(false)} className="hover:rotate-90 transition h-8 w-8">
                     ✕
                   </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6" role="dialog" aria-label="Album browser">
                   <AlbumBrowser />
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </section>
 
 
         {/* Shared Calendar */}
         <div className="mt-14" id="calendar">
-          <Card className="bg-white/90 border-0 shadow-lg rounded-2xl p-6">
-            <CardHeader className="flex flex-row items-center gap-3 mb-2">
-              <span className="bg-rose-100 text-rose-600 rounded-full p-2"><Calendar className="w-5 h-5" /></span>
-              <CardTitle className="font-serif text-2xl font-bold text-rose-600">Shared Calendar</CardTitle>
-            </CardHeader>
+          <SectionCard
+            title="Shared Calendar"
+            subtitle="Plan and view milestones together"
+            icon={<Calendar className="w-6 h-6" />}
+            padded
+          >
             <SharedCalendar />
-          </Card>
+          </SectionCard>
         </div>
 
         {/* Love Notes Widget (moved here) */}
@@ -510,89 +657,51 @@ const Dashboard = () => {
           <PartnerQuizResults />
         </div>
 
-        {/* Quick Actions Section */}
-        <div className="fixed bottom-8 right-8 z-40 flex flex-col gap-4 items-end">
-          {/* Add Memory Button */}
-          <div className="group relative">
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="h-16 w-16 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 text-white shadow-2xl hover:scale-110 transition-all duration-200 flex items-center justify-center"
-              title="Add new memory"
-            >
-              <Plus className="w-7 h-7" />
-            </Button>
-            <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-rose-500 px-4 py-2 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-semibold">Add Memory</span>
-          </div>
-          {/* Chat Button */}
-          <div className="group relative">
-            <Button 
-              onClick={() => setShowChat(true)} 
-              variant="romantic" 
-              className="rounded-full px-6 py-3 shadow-lg hover:scale-105 transition-all text-lg font-semibold flex items-center gap-2"
-              title="Chat with your partner"
-            >
-              💬 Chat
-            </Button>
-            <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-rose-500 px-4 py-2 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-semibold">Open Chat</span>
-          </div>
-          {/* Profile Setup Button - shown when no partner or incomplete profile */}
-          {(!partnerId || !profile?.display_name) && (
-            <div className="group relative">
-              <Button 
-                onClick={() => setShowProfileSetup(true)} 
-                variant="outline" 
-                className="rounded-full px-6 py-3 shadow-lg hover:scale-105 transition-all bg-background border-primary text-rose-600 font-semibold flex items-center gap-2"
-                title="Complete your profile and select partner"
-              >
-                <User className="w-5 h-5 mr-2" />
-                Setup Profile
-              </Button>
-              <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-rose-500 px-4 py-2 rounded-lg shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-semibold">Setup Profile</span>
-            </div>
-          )}
-        </div>
+        {/* Consolidated Quick Actions */}
+        <QuickActionsFab
+          onAddMemory={() => setShowCreateModal(true)}
+          onOpenChat={() => setShowChat(true)}
+          onSetupProfile={() => setShowProfileSetup(true)}
+          showProfileSetupAction={!partnerId || !profile?.display_name}
+          unreadCount={unreadCount}
+          partnerTyping={partnerTyping}
+        />
 
-        {/* Chat Modal - always mounted, toggled with CSS */}
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${showChat ? '' : 'hidden'}`}>
-          <div className="bg-background rounded-lg shadow-xl max-w-2xl w-full h-[600px] mx-4 relative flex flex-col">
-            <Button 
-              className="absolute top-4 right-4 z-10" 
-              size="sm" 
-              variant="ghost" 
+        {/* Enhanced Chat Side Panel */}
+    {!showChat && (
+          <ChatLauncher
+            onOpenChat={() => {
+              setShowChat(true);
+              if (!chatOpenedOnce) {
+                setChatOpenedOnce(true);
+                try { localStorage.setItem('chatOpenedOnce', '1'); } catch {}
+              }
+            }}
+            highlight={!chatOpenedOnce}
+      unreadCount={unreadCount}
+      partnerTyping={partnerTyping}
+      isOnline={isOnline}
+          />
+        )}
+        {showChat && (
+          <>
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity animate-fade-in"
+              aria-label="Close chat"
+              tabIndex={-1}
               onClick={() => setShowChat(false)}
-            >
-              ✕
-            </Button>
-            {partnerId === undefined ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-                <p className="text-muted-foreground">Looking for your partner...</p>
-              </div>
-            ) : !partnerId ? (
-              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <Heart className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Partner Connected</h3>
-                <p className="text-muted-foreground mb-6">
-                  Complete your profile setup and select your partner to start chatting together!
-                </p>
-                <Button 
-                  onClick={() => {
-                    setShowChat(false);
-                    setShowProfileSetup(true);
-                  }}
-                  variant="romantic"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Setup Profile & Partner
-                </Button>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-hidden">
-                <EnhancedChat partnerId={partnerId} />
-              </div>
-            )}
-          </div>
-        </div>
+            />
+            {/* Side Panel */}
+            <ChatSidePanel
+              open={showChat}
+              onClose={() => setShowChat(false)}
+              partnerId={partnerId}
+              setShowProfileSetup={setShowProfileSetup}
+            />
+          </>
+        )}
+
       </div>
 
       {/* Modals */}

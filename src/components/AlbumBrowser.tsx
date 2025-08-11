@@ -88,36 +88,38 @@ const AlbumBrowser = () => {
 
   if (!selectedAlbum) {
     return (
-      <div className="max-w-5xl mx-auto my-16 p-8 bg-white/80 rounded-3xl shadow-2xl border-0 relative">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
-          <div className="flex-1 flex flex-col md:flex-row md:items-center gap-4">
-            <h2 className="text-4xl font-extrabold text-rose-700 font-serif tracking-tight flex items-center gap-3">
-              <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#fbb6ce"/><path d="M7 17l3-3.5 2.5 3L17 13l4 5H3l4-5z" fill="#fff"/></svg>
+      <div className="w-full mx-auto py-8 px-4 md:px-6 bg-white/80 rounded-3xl shadow-xl border border-rose-100/50 relative overflow-x-hidden">
+        <div className="flex flex-col gap-6 mb-8">
+          <div className="flex flex-wrap items-center gap-4 w-full">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-rose-700 font-serif tracking-tight flex items-center gap-3 shrink-0">
+              <svg width="34" height="34" fill="none" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#fbb6ce"/><path d="M7 17l3-3.5 2.5 3L17 13l4 5H3l4-5z" fill="#fff"/></svg>
               Photo Albums
             </h2>
-            <input
-              type="text"
-              placeholder="Search albums..."
-              className="ml-0 md:ml-8 border rounded-full px-4 py-2 text-lg focus:ring-2 focus:ring-rose-200 outline-none w-full md:w-64 bg-white shadow"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            <select
-              className="border rounded-full px-4 py-2 text-lg focus:ring-2 focus:ring-rose-200 outline-none bg-white shadow"
-              value={sort}
-              onChange={e => setSort(e.target.value as any)}
-            >
-              <option value="date">Sort by Date</option>
-              <option value="name">Sort by Name</option>
-              <option value="count">Sort by Photo Count</option>
-            </select>
+            <div className="flex-1 flex flex-wrap items-center gap-4 min-w-0">
+              <input
+                type="text"
+                placeholder="Search albums..."
+                className="border rounded-full px-4 py-2 text-sm md:text-base focus:ring-2 focus:ring-rose-200 outline-none flex-1 min-w-[180px] bg-white shadow"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <select
+                className="border rounded-full px-3 py-2 text-sm md:text-base focus:ring-2 focus:ring-rose-200 outline-none bg-white shadow w-[150px]"
+                value={sort}
+                onChange={e => setSort(e.target.value as any)}
+              >
+                <option value="date">Sort by Date</option>
+                <option value="name">Sort by Name</option>
+                <option value="count">Sort by Photo Count</option>
+              </select>
+              <Button
+                className="rounded-full px-5 py-2 text-sm md:text-base font-semibold bg-gradient-to-r from-rose-400 to-pink-400 text-white shadow hover:from-rose-500 hover:to-pink-500"
+                onClick={() => setShowAdd(true)}
+              >
+                + Add Album
+              </Button>
+            </div>
           </div>
-          <Button
-            className="rounded-full px-6 py-2 text-lg font-semibold bg-gradient-to-r from-rose-400 to-pink-400 text-white shadow-lg hover:from-rose-500 hover:to-pink-500 transition-all"
-            onClick={() => setShowAdd(true)}
-          >
-            + Add Album
-          </Button>
         </div>
         {filteredAlbums.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[250px]">
@@ -131,11 +133,11 @@ const AlbumBrowser = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {filteredAlbums.map(album => (
               <div
                 key={album.id}
-                className={`group cursor-pointer rounded-3xl shadow-xl p-6 bg-gradient-to-br from-white via-rose-50 to-pink-50 border border-rose-100 hover:border-rose-400 transition-all duration-200 hover:scale-[1.03] flex flex-col justify-between relative overflow-hidden animate-fade-in ${dragged === album.id ? 'opacity-60' : ''}`}
+                className={`group cursor-pointer rounded-2xl shadow-md p-5 bg-gradient-to-br from-white via-rose-50 to-pink-50 border border-rose-100 hover:border-rose-400 transition-all duration-200 hover:shadow-lg flex flex-col justify-between relative overflow-hidden ${dragged === album.id ? 'opacity-60' : ''}`}
                 onClick={() => setSelectedAlbum(album.id)}
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSelectedAlbum(album.id); }}
@@ -147,9 +149,9 @@ const AlbumBrowser = () => {
                 onDrop={() => handleDrop(album.id)}
               >
                 {/* Album cover preview */}
-                <div className="w-full h-36 bg-gradient-to-br from-rose-100 to-pink-100 rounded-2xl flex items-center justify-center mb-5 overflow-hidden border border-rose-100 group-hover:shadow-lg transition-all relative">
+                <div className="w-full h-32 bg-gradient-to-br from-rose-100 to-pink-100 rounded-xl flex items-center justify-center mb-4 overflow-hidden border border-rose-100 group-hover:shadow transition-all relative">
                   {getAlbumCover(album.id) ? (
-                    <img src={getAlbumCover(album.id)!} alt="Album Cover" className="w-full h-full object-cover rounded-2xl transition-all duration-200 group-hover:scale-105" />
+                    <img src={getAlbumCover(album.id)!} alt="Album Cover" className="w-full h-full object-cover rounded-xl transition-all duration-200 group-hover:scale-105" />
                   ) : (
                     <svg width="56" height="56" fill="none" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#fbb6ce"/><path d="M7 17l3-3.5 2.5 3L17 13l4 5H3l4-5z" fill="#fff"/></svg>
                   )}
@@ -159,7 +161,7 @@ const AlbumBrowser = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-rose-700 group-hover:underline mb-1 truncate transition-all">{album.name}</h3>
+                  <h3 className="text-xl font-bold text-rose-700 group-hover:underline mb-1 truncate transition-all">{album.name}</h3>
                   {album.description && <p className="text-gray-500 mb-2 text-base truncate">{album.description}</p>}
                   <div className="flex items-center gap-2 text-xs text-rose-500 font-semibold mb-2">
                     <span className="bg-rose-100 rounded-full px-3 py-0.5">{albumPhotoCounts[album.id] || 0} photos</span>
@@ -172,12 +174,7 @@ const AlbumBrowser = () => {
                   <Button size="icon" variant="ghost" className="text-rose-500 hover:text-rose-700 bg-white/80 shadow rounded-full" style={{boxShadow:'0 2px 8px 0 #fbb6ce33'}} onClick={e => { e.stopPropagation(); setFavorites(favs => favs.includes(album.id) ? favs.filter(f => f !== album.id) : [...favs, album.id]); }} aria-label="Favorite album"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18L12 21z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></Button>
                   <Button size="icon" variant="ghost" className="text-rose-500 hover:text-rose-700 bg-white/80 shadow rounded-full" style={{boxShadow:'0 2px 8px 0 #fbb6ce33'}} onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(window.location.origin + '/album/' + album.id); }} aria-label="Share album"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="romantic"
-                  className="mt-4 w-full font-semibold rounded-full group-hover:bg-rose-100 group-hover:text-rose-700 transition-all"
-                  onClick={e => { e.stopPropagation(); setSelectedAlbum(album.id); }}
-                >
+                <Button size="sm" variant="romantic" className="mt-3 w-full font-semibold rounded-full" onClick={e => { e.stopPropagation(); setSelectedAlbum(album.id); }}>
                   View Album
                 </Button>
               </div>
@@ -281,8 +278,8 @@ const AlbumBrowser = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+    <div className="w-full h-full flex flex-col">
+      <div className="relative bg-white rounded-2xl shadow max-w-none w-full flex flex-col overflow-hidden border border-rose-100">
         {/* Sticky Album Header */}
         <div className="sticky top-0 z-20 bg-gradient-to-br from-rose-50 via-white to-pink-100 backdrop-blur rounded-t-2xl shadow p-6 flex flex-col md:flex-row md:items-center md:justify-between border-b border-rose-100">
           <div>
@@ -295,7 +292,7 @@ const AlbumBrowser = () => {
           </div>
         </div>
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-white to-rose-50">
+  <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-white to-rose-50">
           {/* Direct Album Photos Slider Card */}
           <div className="rounded-2xl shadow bg-white p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between mb-2">

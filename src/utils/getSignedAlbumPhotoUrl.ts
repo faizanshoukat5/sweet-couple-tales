@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 
+const albumPhotoCache: Map<string, { url: string; exp: number }> = new Map();
+const TTL_SECONDS = 55 * 60; // 55 minutes
+
 export async function getSignedAlbumPhotoUrl(pathOrUrl: string): Promise<string | null> {
   try {
     let bucket = 'album-photos';
@@ -29,11 +32,17 @@ export async function getSignedAlbumPhotoUrl(pathOrUrl: string): Promise<string 
     // Remove any query string just in case
     objectPath = objectPath.split('?')[0];
 
+    const cacheKey = bucket + ':' + objectPath;
+    const cached = albumPhotoCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.exp > now) return cached.url;
+
     const { data, error } = await supabase.storage.from(bucket).createSignedUrl(objectPath, 60 * 60); // 1 hour
     if (error) {
       console.error('Error creating signed URL', { bucket, objectPath, error });
-      return null;
+      return cached ? cached.url : null;
     }
+    if (data?.signedUrl) albumPhotoCache.set(cacheKey, { url: data.signedUrl, exp: now + TTL_SECONDS * 1000 });
     return data?.signedUrl || null;
   } catch (err) {
     console.error('getSignedAlbumPhotoUrl failed', err);

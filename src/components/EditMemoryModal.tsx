@@ -30,6 +30,7 @@ const EditMemoryModal = ({ memory, open, onOpenChange }: EditMemoryModalProps) =
     photos: [] as string[],
     tags: [] as string[],
     is_favorite: false,
+  cover_photo: null as string | null,
   });
 
   // Update form data when memory changes
@@ -42,6 +43,7 @@ const EditMemoryModal = ({ memory, open, onOpenChange }: EditMemoryModalProps) =
         photos: memory.photos || [],
         tags: memory.tags || [],
         is_favorite: memory.is_favorite,
+  cover_photo: memory.cover_photo || (memory.photos?.[0] || null),
       });
     }
   }, [memory]);
@@ -59,6 +61,7 @@ const EditMemoryModal = ({ memory, open, onOpenChange }: EditMemoryModalProps) =
         photos: formData.photos,
         tags: formData.tags,
         is_favorite: formData.is_favorite,
+  cover_photo: formData.cover_photo,
       });
       
       onOpenChange(false);
@@ -120,6 +123,8 @@ const EditMemoryModal = ({ memory, open, onOpenChange }: EditMemoryModalProps) =
           <MemoryPhotoUpload
             photos={formData.photos}
             onPhotosChange={(photos) => setFormData(prev => ({ ...prev, photos }))}
+            coverPhoto={formData.cover_photo}
+            onCoverChange={(cover) => setFormData(prev => ({ ...prev, cover_photo: cover }))}
           />
 
           {/* Tags */}
