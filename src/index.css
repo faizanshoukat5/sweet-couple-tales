@@ -1,3 +1,6 @@
+/* Import mobile responsive styles */
+@import './styles/mobile.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
