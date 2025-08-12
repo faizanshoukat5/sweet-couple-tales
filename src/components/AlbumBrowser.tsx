@@ -313,6 +313,23 @@ const AlbumBrowser = () => {
                 ref={sliderRef}
                 className="flex overflow-x-auto gap-4 pb-2 scrollbar-thin scrollbar-thumb-rose-200 scrollbar-track-transparent"
                 style={{ scrollBehavior: 'smooth', minHeight: '90px' }}
+                role="region"
+                aria-label="Album photo slider"
+                tabIndex={0}
+                onKeyDown={e => {
+                  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+                  const focusables = Array.from((e.currentTarget as HTMLElement).querySelectorAll('img[role="button"]')) as HTMLElement[];
+                  const current = document.activeElement;
+                  const idx = focusables.indexOf(current as HTMLElement);
+                  if (idx === -1) return;
+                  let nextIdx = idx;
+                  if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + focusables.length) % focusables.length;
+                  if (e.key === 'ArrowRight') nextIdx = (idx + 1) % focusables.length;
+                  if (e.key === 'Home') nextIdx = 0;
+                  if (e.key === 'End') nextIdx = focusables.length - 1;
+                  focusables[nextIdx]?.focus();
+                  e.preventDefault();
+                }}
               >
                 {photos.map(photo => (
                   <div key={photo.id} className="relative group min-w-[120px] max-w-[160px] flex-shrink-0">

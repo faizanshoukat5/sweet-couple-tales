@@ -76,7 +76,23 @@ const AlbumsList = ({ cardStyle }: { cardStyle?: 'carousel' }) => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto my-8 p-8 bg-white rounded-2xl shadow-xl border border-rose-100">
+    <div
+      className="max-w-2xl mx-auto my-8 p-8 bg-white rounded-2xl shadow-xl border border-rose-100"
+      role="region"
+      aria-label="Photo albums carousel"
+      tabIndex={0}
+      onKeyDown={e => {
+        if (cardStyle !== 'carousel') return;
+        const focusables = Array.from((e.currentTarget as HTMLElement).querySelectorAll('[data-album-card]')) as HTMLElement[];
+        const current = document.activeElement;
+        const idx = focusables.indexOf(current as HTMLElement);
+        if (idx === -1) return;
+        let nextIdx = idx;
+        if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + focusables.length) % focusables.length;
+        if (e.key === 'ArrowRight') nextIdx = (idx + 1) % focusables.length;
+        focusables[nextIdx]?.focus();
+      }}
+    >
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold text-rose-600 flex items-center gap-2">
           <ImageIcon className="w-7 h-7 text-rose-300" />
@@ -114,7 +130,14 @@ const AlbumsList = ({ cardStyle }: { cardStyle?: 'carousel' }) => {
             const cover = thumbs[album.id]; // always rely on signed URL map
             const showImage = !!cover && !errored[album.id];
             return (
-              <div key={album.id} className="group bg-white rounded-xl shadow-md border border-rose-100 hover:border-rose-400 transition-all duration-200 hover:scale-105 flex flex-col items-center justify-between p-4 cursor-pointer relative">
+              <div
+                key={album.id}
+                className="group bg-white rounded-xl shadow-md border border-rose-100 hover:border-rose-400 transition-all duration-200 hover:scale-105 flex flex-col items-center justify-between p-4 cursor-pointer relative"
+                data-album-card
+                tabIndex={0}
+                role="group"
+                aria-label={`Album: ${album.name}`}
+              >
                 <div className="w-full h-28 rounded-lg flex items-center justify-center mb-3 overflow-hidden bg-gradient-to-br from-rose-100 to-pink-50 relative">
                   {showImage ? (
                     <img
@@ -136,6 +159,7 @@ const AlbumsList = ({ cardStyle }: { cardStyle?: 'carousel' }) => {
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setAlbumCover(album.id, album.cover_photo || cover || ''); }}
                         className="text-[10px] bg-white/80 hover:bg-white text-rose-700 font-semibold px-2 py-0.5 rounded"
+                        aria-label={album.cover_photo ? 'Album cover selected' : 'Set album cover'}
                       >
                         {album.cover_photo ? 'Cover ✓' : 'Set Cover'}
                       </button>
@@ -148,7 +172,13 @@ const AlbumsList = ({ cardStyle }: { cardStyle?: 'carousel' }) => {
                 <div className="flex items-center gap-1 text-xs text-rose-500 font-semibold mb-2">
                   <span className="bg-rose-100 rounded-full px-2 py-0.5">{albumPhotoCounts[album.id] || 0} photos</span>
                 </div>
-                <Button size="sm" variant="ghost" className="absolute top-2 right-2 text-rose-400 hover:text-rose-600" onClick={() => deleteAlbum(album.id)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute top-2 right-2 text-rose-400 hover:text-rose-600"
+                  onClick={() => deleteAlbum(album.id)}
+                  aria-label={`Delete album ${album.name}`}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>

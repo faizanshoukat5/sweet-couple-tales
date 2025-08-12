@@ -1,5 +1,5 @@
-/* Import mobile responsive styles */
-@import './styles/mobile.css';
+/* Import parallax styles */
+@import './styles/parallax.css';
 
 @tailwind base;
 @tailwind components;

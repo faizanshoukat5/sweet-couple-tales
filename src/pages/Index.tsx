@@ -1,6 +1,9 @@
 import { useAuth } from "@/hooks/useAuth";
-import Hero from "@/components/Hero";
-import Features from "@/components/Features";
+import ParallaxHero from "@/components/ParallaxHero";
+import ParallaxBackground from "@/components/ParallaxBackground";
+import ParallaxSection, { FeaturesBackground, TimelineBackground, CallToActionBackground } from "@/components/ParallaxSection";
+import AnimatedFeatures from "@/components/AnimatedFeatures";
+import InteractiveMemoryDemo from "@/components/InteractiveMemoryDemo";
 import Timeline from "@/components/Timeline";
 import HomeAlbumsPreview from "@/components/HomeAlbumsPreview";
 import CallToAction from "@/components/CallToAction";
@@ -10,13 +13,35 @@ import { Link } from "react-router-dom";
 const Index = () => {
   const { user, loading } = useAuth();
   return (
-    <div className="min-h-screen bg-background">
-      <Hero />
-      <Features isAuthenticated={!!user} />
-      <Timeline />
-      {/* Albums preview mirrors dashboard albums section */}
-      <HomeAlbumsPreview />
-      <CallToAction />
+    <div className="min-h-screen bg-background relative">
+      {/* Parallax Background */}
+      <ParallaxBackground />
+      
+      {/* Main Content */}
+      <div className="relative z-10">
+        <ParallaxHero />
+        
+        <ParallaxSection backgroundElements={<FeaturesBackground />}>
+          <AnimatedFeatures isAuthenticated={!!user} />
+        </ParallaxSection>
+        
+        <ParallaxSection>
+          <InteractiveMemoryDemo />
+        </ParallaxSection>
+        
+        <ParallaxSection backgroundElements={<TimelineBackground />}>
+          <Timeline />
+        </ParallaxSection>
+        
+        <ParallaxSection>
+          {/* Albums preview mirrors dashboard albums section */}
+          <HomeAlbumsPreview />
+        </ParallaxSection>
+        
+        <ParallaxSection backgroundElements={<CallToActionBackground />}>
+          <CallToAction />
+        </ParallaxSection>
+      </div>
       <div className="relative flex justify-center mt-20 mb-12">
         <div className="w-full max-w-3xl">
           <div className="relative overflow-visible">
