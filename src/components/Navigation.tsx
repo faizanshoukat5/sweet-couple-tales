@@ -184,6 +184,9 @@ const Navigation = () => {
                       </div>
                     </div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/cycle')}>
+                      Cycle tracker
+                    </DropdownMenuItem>
                     
                     <DropdownMenuItem
                       onClick={() => navigate('/dashboard')}
