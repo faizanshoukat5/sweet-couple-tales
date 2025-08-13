@@ -786,23 +786,23 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     if (msg.read_at) {
       return (
         <span title="Read" className="inline-flex items-center gap-1">
-          <CheckCheck className="w-3 h-3 text-primary" />
-          <span className="text-xs text-primary/80">Read</span>
+          <CheckCheck className="w-3 h-3 text-primary drop-shadow-sm" />
+          <span className="text-xs text-primary font-semibold">Read</span>
         </span>
       );
     } else if (msg.delivered_at) {
       return (
         <span title="Delivered" className="inline-flex items-center gap-1">
-          <CheckCheck className="w-3 h-3 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground/80">Delivered</span>
+          <CheckCheck className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
+          <span className="text-xs text-muted-foreground font-semibold">Delivered</span>
         </span>
       );
     }
 
     return (
       <span title="Sent" className="inline-flex items-center gap-1">
-        <Check className="w-3 h-3 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground/80">Sent</span>
+        <Check className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
+        <span className="text-xs text-muted-foreground font-semibold">Sent</span>
       </span>
     );
   };
@@ -1040,26 +1040,29 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                       )}
                       
                       {/* Message Bubble */}
-                      <div className={cn(
-                        "px-4 py-3 rounded-2xl shadow-sm break-words relative overflow-hidden",
-                        "backdrop-blur-sm transition-all duration-200",
-                        isOwn 
-                          ? cn(
-                              "bg-gradient-to-r from-primary to-primary/90 text-white shadow-primary/20",
-                              isLastInGroup ? "rounded-br-md" : "",
-                              isFirstInGroup ? "rounded-tr-2xl" : "rounded-tr-md"
-                            )
-                          : cn(
-                              "bg-card border border-border/50 text-card-foreground shadow-black/5",
-                              isLastInGroup ? "rounded-bl-md" : "",
-                              isFirstInGroup ? "rounded-tl-2xl" : "rounded-tl-md"
-                            ),
-                        "hover:shadow-lg transition-shadow",
-                        msg.id.startsWith('temp-') && "animate-pulse"
-                      )}>
+                      <div 
+                        className={cn(
+                          "message-bubble px-4 py-3 rounded-2xl shadow-sm break-words relative overflow-hidden",
+                          "backdrop-blur-sm transition-all duration-200",
+                          isOwn 
+                            ? cn(
+                                "bg-gradient-to-r from-primary to-primary/95 text-white shadow-primary/25",
+                                isLastInGroup ? "rounded-br-md" : "",
+                                isFirstInGroup ? "rounded-tr-2xl" : "rounded-tr-md"
+                              )
+                            : cn(
+                                "bg-card border border-border/60 text-foreground shadow-black/10",
+                                isLastInGroup ? "rounded-bl-md" : "",
+                                isFirstInGroup ? "rounded-tl-2xl" : "rounded-tl-md"
+                              ),
+                          "hover:shadow-lg transition-shadow",
+                          msg.id.startsWith('temp-') && "animate-pulse"
+                        )}
+                        data-own={isOwn.toString()}
+                      >
                         {/* Loading State for Temp Messages */}
                         {msg.id.startsWith('temp-') && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                         )}
                         
                         {/* Attachment Content */}
@@ -1068,8 +1071,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                         {/* Text Content */}
                         {msg.content && !msg.content.startsWith('📎') && !msg.content.startsWith('🎤') && (
                           <p className={cn(
-                            "text-sm leading-relaxed whitespace-pre-wrap break-words",
-                            isOwn ? "text-white" : "text-foreground"
+                            "text-sm leading-relaxed whitespace-pre-wrap break-words font-semibold",
+                            isOwn ? "text-white drop-shadow-md" : "text-foreground"
                           )}>
                             {msg.content}
                           </p>
@@ -1077,8 +1080,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                         
                         {/* Message Footer */}
                         <div className={cn(
-                          "flex items-center justify-end gap-1 mt-2 text-xs",
-                          isOwn ? "text-white/70" : "text-muted-foreground"
+                          "flex items-center justify-end gap-1 mt-2 text-xs font-semibold",
+                          isOwn ? "text-white drop-shadow-md" : "text-muted-foreground"
                         )}>
                           <span>{formatMessageTime(msg.timestamp)}</span>
                           {getMessageStatusIcon(msg)}
