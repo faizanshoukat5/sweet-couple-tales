@@ -2,8 +2,9 @@ import * as React from "react";
 import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMobile } from "@/hooks/useMobile";
 import { Button } from "@/components/ui/button";
-import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download } from "lucide-react";
+import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, Phone, Video, Info, ArrowLeft } from "lucide-react";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
 import { AttachmentUpload, AttachmentDisplay } from './AttachmentUpload';
@@ -13,6 +14,9 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } 
 import { VisuallyHidden } from './ui/VisuallyHidden';
 import { uploadVoiceMessage } from '@/utils/uploadVoiceMessage';
 import { getSignedChatAttachmentUrl } from '@/utils/getSignedChatAttachmentUrl';
+import { chatHaptics, debouncedHaptic } from '@/utils/hapticFeedback';
+import { cn } from "@/lib/utils";
+import './EnhancedChatAnimations.css';
 
 interface Message {
   id: string;
@@ -126,56 +130,114 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
 const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isMobile, isTablet, isTouchDevice, screenWidth, orientation } = useMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
-  // Emoji picker and attachment
+  const notificationAudioRef = useRef<HTMLAudioElement>(null);
+  
+  // Enhanced UI state
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // Voice recording
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  // Notification sound
-  const notificationAudioRef = useRef<HTMLAudioElement>(null);
-  // Swipe/slide-to-reply gesture handlers
-  const swipeData = useRef<{startX: number, triggered: boolean}>({startX: 0, triggered: false});
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [showChatInfo, setShowChatInfo] = useState(false);
+  
+  // Advanced swipe gesture handling
+  const swipeData = useRef<{
+    startX: number; 
+    startY: number; 
+    triggered: boolean; 
+    element: HTMLElement | null;
+  }>({startX: 0, startY: 0, triggered: false, element: null});
+
+  // Enhanced swipe gesture handlers for mobile
   const handleMessageTouchStart = (e: React.TouchEvent, msg: Message) => {
-    swipeData.current = { startX: e.touches[0].clientX, triggered: false };
+    if (!isTouchDevice) return;
+    
+    const touch = e.touches[0];
+    const element = e.currentTarget as HTMLElement;
+    swipeData.current = { 
+      startX: touch.clientX, 
+      startY: touch.clientY, 
+      triggered: false, 
+      element 
+    };
+    element.style.transition = 'none';
+    
+    // Light haptic feedback on touch start
+    chatHaptics.swipeStart();
   };
+
   const handleMessageTouchMove = (e: React.TouchEvent, msg: Message) => {
-    const dx = e.touches[0].clientX - swipeData.current.startX;
-    if (!swipeData.current.triggered && dx > 60) {
+    if (!swipeData.current.element || !isTouchDevice) return;
+    
+    const touch = e.touches[0];
+    const dx = touch.clientX - swipeData.current.startX;
+    const dy = touch.clientY - swipeData.current.startY;
+    
+    // Only trigger horizontal swipe if movement is primarily horizontal
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    
+    const element = swipeData.current.element;
+    const isOwn = msg.sender_id === user?.id;
+    
+    // Constrain swipe direction based on message ownership
+    if ((isOwn && dx > 0) || (!isOwn && dx < 0)) return;
+    
+    const maxSwipe = 100;
+    const clampedDx = Math.max(-maxSwipe, Math.min(maxSwipe, Math.abs(dx)));
+    
+    element.style.transform = `translateX(${isOwn ? -clampedDx : clampedDx}px)`;
+    
+    // Add visual feedback for reply threshold
+    const replyThreshold = 60;
+    if (clampedDx > replyThreshold * 0.7) {
+      element.classList.add('swipe-feedback');
+    } else {
+      element.classList.remove('swipe-feedback');
+    }
+    
+    // Trigger reply when swipe threshold is reached
+    if (!swipeData.current.triggered && clampedDx > replyThreshold) {
       setReplyToMessage(msg);
       swipeData.current.triggered = true;
+      
+      // Enhanced haptic feedback for reply action
+      chatHaptics.swipeReply();
+      
+      // Brief visual feedback
+      element.classList.add('swipe-success');
+      setTimeout(() => element.classList.remove('swipe-success'), 200);
     }
   };
-  const handleMessageMouseDown = (e: React.MouseEvent, msg: Message) => {
-    swipeData.current = { startX: e.clientX, triggered: false };
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const dx = moveEvent.clientX - swipeData.current.startX;
-      if (!swipeData.current.triggered && dx > 60) {
-        setReplyToMessage(msg);
-        swipeData.current.triggered = true;
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+
+  const handleMessageTouchEnd = () => {
+    if (swipeData.current.element) {
+      const element = swipeData.current.element;
+      element.style.transition = 'transform 0.2s ease-out';
+      element.style.transform = 'translateX(0)';
+      element.classList.remove('swipe-feedback', 'swipe-success');
+      
+      // Light haptic if gesture was cancelled
+      if (!swipeData.current.triggered) {
+        chatHaptics.swipeCancel();
       }
-    };
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    }
+    swipeData.current = {startX: 0, startY: 0, triggered: false, element: null};
   };
 
   // UUID validation function
@@ -636,11 +698,17 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         description: "Please select a valid chat partner.",
         variant: "destructive",
       });
+      chatHaptics.error();
       return;
     }
+    
     setSending(true);
     setIsTyping(false);
     sendTypingIndicator(false);
+    
+    // Haptic feedback for message sent
+    chatHaptics.messageSent();
+    
     const tempId = `temp-${Date.now()}`;
     const timestamp = new Date().toISOString();
     // Add replyToMessage reference in optimistic message (optional: add reply_to field in Message type)
@@ -657,6 +725,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     setMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage("");
     setReplyToMessage(null);
+    
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -681,6 +750,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         description: "Please try again.",
         variant: "destructive",
       });
+      chatHaptics.error();
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -739,16 +809,32 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
 
   if (!isValidUUID(partnerId)) {
     return (
-      <div className="flex flex-col h-full max-h-[600px]">
-        <header className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-sm rounded-t-lg">
-          <h2 className="font-serif text-xl font-bold text-primary">Private Messages</h2>
-          <span className="text-muted-foreground text-sm">Chat with your partner 💕</span>
+      <div className={cn(
+        "flex flex-col bg-background border border-border",
+        isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg"
+      )}>
+        <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg text-foreground">Private Messages</h2>
+              <p className="text-sm text-muted-foreground">Chat with your partner</p>
+            </div>
+          </div>
+          <div className="text-2xl">💕</div>
         </header>
         
-        <div className="flex-1 flex items-center justify-center text-muted-foreground p-8">
-          <div className="text-center">
-            <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p>Please select a valid chat partner to start messaging.</p>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Heart className="w-12 h-12 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Start Your Conversation</h3>
+            <p className="text-muted-foreground">
+              Select a partner to begin sharing your thoughts and feelings in a private space.
+            </p>
           </div>
         </div>
       </div>
@@ -756,122 +842,346 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[600px] bg-background rounded-lg shadow-sm border">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-sm rounded-t-lg">
-        <div>
-          <h2 className="font-serif text-xl font-bold text-primary">Private Messages</h2>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
-            <span>{isOnline ? 'Online' : 'Offline'}</span>
-            {unreadCount > 0 && (
-              <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                {unreadCount} unread
-              </span>
-            )}
+    <div className={cn(
+      "flex flex-col bg-background border border-border overflow-hidden",
+      isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg",
+      isFullscreen && "fixed inset-0 z-50 rounded-none"
+    )}>
+      {/* Enhanced Header */}
+      <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
+        <div className="flex items-center gap-3 flex-1">
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 h-auto"
+              onClick={() => setIsFullscreen(false)}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          )}
+          
+          {/* Partner Avatar & Status */}
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <Heart className="w-5 h-5 text-white" />
+            </div>
+            <div className={cn(
+              "absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background",
+              isOnline ? "bg-green-500" : "bg-gray-400"
+            )}>
+              {connectionStatus === 'connecting' && (
+                <div className="w-full h-full rounded-full bg-yellow-500 animate-pulse" />
+              )}
+            </div>
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-foreground truncate">Your Partner</h2>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {partnerTyping ? (
+                  <span className="text-primary font-medium flex items-center gap-1">
+                    <span>typing</span>
+                    <span className="flex gap-0.5">
+                      <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                      <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                      <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                    </span>
+                  </span>
+                ) : isOnline ? (
+                  "Online"
+                ) : lastSeen ? (
+                  `Last seen ${formatMessageTime(lastSeen)}`
+                ) : (
+                  "Offline"
+                )}
+              </p>
+              {unreadCount > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 text-xs bg-primary text-primary-foreground rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <span className="text-muted-foreground text-sm">💕</span>
+        
+        {/* Header Actions */}
+        <div className="flex items-center gap-2">
+          {!isMobile && (
+            <>
+              <Button variant="ghost" size="sm" className="p-2 h-auto">
+                <Phone className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="p-2 h-auto">
+                <Video className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="p-2 h-auto"
+            onClick={() => setShowChatInfo(!showChatInfo)}
+          >
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        </div>
       </header>
-      
-      {/* Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 bg-gradient-to-b from-background/50 to-background space-y-3">
+      {/* Messages Container */}
+      <div 
+        ref={messagesContainerRef} 
+        className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden",
+          isMobile ? "px-3 py-2" : "px-4 py-4"
+        )}
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%)',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(0,0,0,0.2) transparent'
+        }}
+      >
         {messages.length === 0 ? (
-          <div className="text-center text-muted-foreground mt-12">
-            <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <p className="font-medium">No messages yet</p>
-            <p className="text-sm">Start your conversation and share your thoughts! 💭</p>
+          <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center px-4">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-6">
+              <Heart className="w-10 h-10 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2 text-foreground">No messages yet</h3>
+            <p className="text-muted-foreground max-w-sm leading-relaxed">
+              Start your conversation and share your thoughts, feelings, and beautiful moments together! 💭✨
+            </p>
           </div>
         ) : (
-          messages.map((msg, index) => {
-            const isOwn = msg.sender_id === user?.id;
-            const showTimestamp = index === 0 || 
-              new Date(msg.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 5 * 60 * 1000;
-            // Find replied message if any
-            const repliedMsg = msg.reply_to ? messages.find(m => m.id === msg.reply_to) : null;
-            return (
-              <div key={msg.id}>
-                {showTimestamp && (
-                  <div className="text-center text-xs text-muted-foreground my-4">
-                    {formatMessageTime(msg.timestamp)}
-                  </div>
-                )}
-                <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-xs px-4 py-3 rounded-2xl shadow-sm break-words transition-all duration-300 ease-out
-                      ${isOwn ? "bg-gradient-romantic text-white rounded-br-md" : "bg-card text-card-foreground border rounded-bl-md"}
-                      animate-fade-slide-in
-                      ${msg.id.startsWith('temp-') ? 'opacity-70 scale-95' : 'opacity-100 scale-100'}
-                    `}
-                    style={msg.id.startsWith('temp-') ? { filter: 'blur(0.5px)' } : {}}
-                    onTouchStart={e => handleMessageTouchStart(e, msg)}
-                    onTouchMove={e => handleMessageTouchMove(e, msg)}
-                    onMouseDown={e => handleMessageMouseDown(e, msg)}
-                  >
-                    {/* Reply preview above message */}
-                    {repliedMsg && (
-                      <div className={`mb-1 px-2 py-1 rounded bg-muted text-xs ${isOwn ? 'text-white/80' : 'text-muted-foreground/80'}`}
-                        style={{ borderLeft: `3px solid ${isOwn ? '#fff' : '#e11d48'}` }}>
-                        <Reply className="inline w-3 h-3 mr-1 align-text-bottom" />
-                        {repliedMsg.content.length > 40 ? repliedMsg.content.slice(0, 40) + '…' : repliedMsg.content}
+          <div className="space-y-1">
+            {messages.map((msg, index) => {
+              const isOwn = msg.sender_id === user?.id;
+              const prevMsg = messages[index - 1];
+              const nextMsg = messages[index + 1];
+              
+              // Group messages by same sender within 5 minutes
+              const showAvatar = !nextMsg || 
+                nextMsg.sender_id !== msg.sender_id || 
+                new Date(nextMsg.timestamp).getTime() - new Date(msg.timestamp).getTime() > 5 * 60 * 1000;
+              
+              const showTimestamp = !prevMsg || 
+                new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() > 30 * 60 * 1000;
+              
+              const isFirstInGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+              const isLastInGroup = showAvatar;
+              
+              const repliedMsg = msg.reply_to ? messages.find(m => m.id === msg.reply_to) : null;
+
+              return (
+                <div key={msg.id} className="w-full">
+                  {/* Timestamp Divider */}
+                  {showTimestamp && (
+                    <div className="flex items-center justify-center my-6">
+                      <div className="flex-1 h-px bg-border"></div>
+                      <div className="px-4 py-1 bg-muted/50 rounded-full text-xs text-muted-foreground font-medium">
+                        {formatMessageTime(msg.timestamp)}
+                      </div>
+                      <div className="flex-1 h-px bg-border"></div>
+                    </div>
+                  )}
+                  
+                  {/* Message */}
+                  <div className={cn(
+                    "flex items-end gap-2 group relative",
+                    isOwn ? "justify-end" : "justify-start",
+                    isMobile ? "mb-1" : "mb-2"
+                  )}>
+                    {/* Avatar for received messages */}
+                    {!isOwn && (
+                      <div className={cn(
+                        "flex-shrink-0 transition-opacity",
+                        showAvatar ? "opacity-100" : "opacity-0"
+                      )}>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                          <Heart className="w-4 h-4 text-white" />
+                        </div>
                       </div>
                     )}
                     
-                    {/* Attachment rendering using the new AttachmentDisplay */}
-
-                    <ChatAttachmentView msg={msg} isOwn={isOwn} />
-                    
-                    {/* Message text */}
-                    {msg.content && !msg.content.startsWith('📎') && !msg.content.startsWith('🎤') && !msg.attachment_url && (
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
-                    )}
-                    <div className={`flex items-center justify-end gap-1 mt-2 text-xs ${
-                      isOwn ? "text-white/70" : "text-muted-foreground"
-                    }`}>
-                      {formatMessageTime(msg.timestamp)}
-                      {getMessageStatusIcon(msg)}
+                    {/* Message Content */}
+                    <div
+                      className={cn(
+                        "relative max-w-[85%] transition-all duration-200 ease-out cursor-pointer",
+                        isMobile ? "max-w-[75%]" : "max-w-[70%]",
+                        msg.id.startsWith('temp-') && "opacity-70 scale-95"
+                      )}
+                      onTouchStart={(e) => handleMessageTouchStart(e, msg)}
+                      onTouchMove={(e) => handleMessageTouchMove(e, msg)}
+                      onTouchEnd={handleMessageTouchEnd}
+                      onClick={() => {
+                        if (!isMobile) setReplyToMessage(msg);
+                      }}
+                    >
+                      {/* Reply Preview */}
+                      {repliedMsg && (
+                        <div className={cn(
+                          "mb-2 p-2 rounded-lg border-l-4 bg-muted/30 text-sm",
+                          isOwn 
+                            ? "border-white/30 text-white/80" 
+                            : "border-primary text-muted-foreground"
+                        )}>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Reply className="w-3 h-3" />
+                            <span className="text-xs font-medium">
+                              {repliedMsg.sender_id === user?.id ? "You" : "Partner"}
+                            </span>
+                          </div>
+                          <p className="truncate text-xs">
+                            {repliedMsg.content.length > 50 
+                              ? repliedMsg.content.slice(0, 50) + '…' 
+                              : repliedMsg.content
+                            }
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Message Bubble */}
+                      <div className={cn(
+                        "px-4 py-3 rounded-2xl shadow-sm break-words relative overflow-hidden",
+                        "backdrop-blur-sm transition-all duration-200",
+                        isOwn 
+                          ? cn(
+                              "bg-gradient-to-r from-primary to-primary/90 text-white shadow-primary/20",
+                              isLastInGroup ? "rounded-br-md" : "",
+                              isFirstInGroup ? "rounded-tr-2xl" : "rounded-tr-md"
+                            )
+                          : cn(
+                              "bg-card border border-border/50 text-card-foreground shadow-black/5",
+                              isLastInGroup ? "rounded-bl-md" : "",
+                              isFirstInGroup ? "rounded-tl-2xl" : "rounded-tl-md"
+                            ),
+                        "hover:shadow-lg transition-shadow",
+                        msg.id.startsWith('temp-') && "animate-pulse"
+                      )}>
+                        {/* Loading State for Temp Messages */}
+                        {msg.id.startsWith('temp-') && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                        )}
+                        
+                        {/* Attachment Content */}
+                        <ChatAttachmentView msg={msg} isOwn={isOwn} />
+                        
+                        {/* Text Content */}
+                        {msg.content && !msg.content.startsWith('📎') && !msg.content.startsWith('🎤') && (
+                          <p className={cn(
+                            "text-sm leading-relaxed whitespace-pre-wrap break-words",
+                            isOwn ? "text-white" : "text-foreground"
+                          )}>
+                            {msg.content}
+                          </p>
+                        )}
+                        
+                        {/* Message Footer */}
+                        <div className={cn(
+                          "flex items-center justify-end gap-1 mt-2 text-xs",
+                          isOwn ? "text-white/70" : "text-muted-foreground"
+                        )}>
+                          <span>{formatMessageTime(msg.timestamp)}</span>
+                          {getMessageStatusIcon(msg)}
+                        </div>
+                      </div>
+                      
+                      {/* Quick Reply Button (Desktop) */}
+                      {!isMobile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100",
+                            "transition-opacity duration-200 p-1 h-auto w-auto rounded-full",
+                            "bg-background/80 backdrop-blur-sm border shadow-sm"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplyToMessage(msg);
+                          }}
+                        >
+                          <Reply className="w-3 h-3" />
+                        </Button>
+                      )}
                     </div>
+                    
+                    {/* Avatar for sent messages */}
+                    {isOwn && (
+                      <div className={cn(
+                        "flex-shrink-0 transition-opacity",
+                        showAvatar ? "opacity-100" : "opacity-0"
+                      )}>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center">
+                          <span className="text-white text-xs font-semibold">Me</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Typing Indicator */}
+            {partnerTyping && (
+              <div className="flex items-end gap-2 justify-start mb-4">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                  <div className="flex items-center gap-1">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-xs text-muted-foreground ml-2">typing</span>
                   </div>
                 </div>
               </div>
-            );
-          })
+            )}
+          </div>
         )}
         
-        {/* Typing indicator */}
-        {partnerTyping && (
-          <div className="flex justify-start">
-            <div className="bg-card text-card-foreground border rounded-2xl rounded-bl-md px-4 py-3 max-w-xs">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div ref={messagesEndRef} className="h-1" />
+      </div>
+      {/* Enhanced Input Section */}
+      <footer className={cn(
+        "border-t bg-card/80 backdrop-blur-lg",
+        isMobile ? "p-3" : "p-4"
+      )}>
+        {/* Reply Preview */}
+        {replyToMessage && (
+          <div className="flex items-center justify-between mb-3 p-3 rounded-lg bg-muted/50 border border-border/50">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-1 h-8 bg-primary rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Replying to {replyToMessage.sender_id === user?.id ? 'yourself' : 'partner'}
+                </p>
+                <p className="text-sm text-foreground truncate">
+                  {replyToMessage.content.length > 60 
+                    ? replyToMessage.content.slice(0, 60) + '…' 
+                    : replyToMessage.content
+                  }
+                </p>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-1 h-auto flex-shrink-0"
+              onClick={() => setReplyToMessage(null)}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M18 6L6 18M6 6l12 12" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Button>
           </div>
         )}
         
-        <div ref={messagesEndRef} />
-      </div>
-      
-      {/* Input */}
-      <footer className="p-4 border-t bg-card/50 backdrop-blur-sm rounded-b-lg">
-        {/* Reply preview above input */}
-        {replyToMessage && (
-          <div className="flex items-center mb-3 px-3 py-2 rounded bg-muted/80 text-xs text-muted-foreground justify-between">
-            <div className="flex items-center gap-2">
-              <Reply className="w-4 h-4 text-primary" />
-              <span className="max-w-[180px] truncate">{replyToMessage.content.length > 60 ? replyToMessage.content.slice(0, 60) + '…' : replyToMessage.content}</span>
-            </div>
-            <button type="button" className="ml-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => setReplyToMessage(null)}>
-              Cancel
-            </button>
-          </div>
-        )}
-        
-        {/* Attachment upload area */}
+        {/* Attachment Upload Area */}
         {showAttachments && (
-          <div className="mb-3">
+          <div className="mb-3 p-3 rounded-lg border border-border/50 bg-muted/30">
             <AttachmentUpload
               userId={user?.id || ''}
               partnerId={partnerId}
@@ -880,9 +1190,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           </div>
         )}
         
-        {/* Voice recorder area */}
+        {/* Voice Recorder Area */}
         {showVoiceRecorder && (
-          <div className="mb-3">
+          <div className="mb-3 p-3 rounded-lg border border-border/50 bg-muted/30">
             <VoiceRecorder
               onVoiceMessageSend={handleVoiceMessageSend}
               onCancel={() => setShowVoiceRecorder(false)}
@@ -891,99 +1201,174 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             />
           </div>
         )}
+        
+        {/* Input Form */}
         <form
-          className="flex gap-3"
-          onSubmit={e => {
+          className="flex items-end gap-3"
+          onSubmit={(e) => {
             e.preventDefault();
             sendMessage();
           }}
         >
+          {/* Main Input Container */}
           <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              className="w-full border border-border rounded-full px-4 py-3 pr-20 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-              value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                handleTyping();
-              }}
-              placeholder="Type your message..."
-              disabled={sending}
-              maxLength={500}
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {/* Emoji picker button */}
-              <div className="relative">
-                <button
-                  type="button"
-                  className="p-1 hover:bg-muted rounded-full transition-colors"
-                  onClick={() => setShowEmoji((v) => !v)}
-                  aria-label="Pick emoji"
-                >
-                  <Smile className="w-4 h-4 text-muted-foreground" />
-                </button>
-                {showEmoji && (
-                  <EmojiPicker
-                    onSelect={(emoji) => {
-                      setNewMessage((msg) => msg + emoji);
-                      setShowEmoji(false);
-                      inputRef.current?.focus();
-                    }}
-                    onClose={() => setShowEmoji(false)}
-                  />
+            <div className={cn(
+              "flex items-center bg-background border border-border rounded-full shadow-sm",
+              "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary",
+              "transition-all duration-200",
+              newMessage.length > 400 && "border-warning ring-2 ring-warning/20"
+            )}>
+              {/* Text Input */}
+              <input
+                ref={inputRef}
+                type="text"
+                className={cn(
+                  "flex-1 bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground",
+                  "focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
+                  isMobile ? "py-3" : "py-3"
                 )}
+                value={newMessage}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  handleTyping();
+                }}
+                placeholder="Type your message..."
+                disabled={sending}
+                maxLength={500}
+                autoComplete="off"
+                autoCorrect="on"
+                autoCapitalize="sentences"
+              />
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1 pr-2">
+                {/* Emoji Picker */}
+                <div className="relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "p-2 h-auto rounded-full hover:bg-muted transition-colors",
+                      showEmoji && "bg-muted"
+                    )}
+                    onClick={() => setShowEmoji(!showEmoji)}
+                    disabled={sending}
+                  >
+                    <Smile className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                  {showEmoji && (
+                    <div className="absolute bottom-full right-0 mb-2 z-50">
+                      <EmojiPicker
+                        onSelect={(emoji) => {
+                          setNewMessage((prev) => prev + emoji);
+                          setShowEmoji(false);
+                          inputRef.current?.focus();
+                        }}
+                        onClose={() => setShowEmoji(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Attachment Button */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "p-2 h-auto rounded-full hover:bg-muted transition-colors",
+                    showAttachments && "bg-muted"
+                  )}
+                  onClick={() => {
+                    setShowAttachments(!showAttachments);
+                    setShowVoiceRecorder(false);
+                  }}
+                  disabled={sending}
+                >
+                  <Paperclip className="w-4 h-4 text-muted-foreground" />
+                </Button>
+                
+                {/* Voice Message Button */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "p-2 h-auto rounded-full hover:bg-muted transition-colors",
+                    (showVoiceRecorder || isRecordingVoice) && "bg-muted"
+                  )}
+                  onClick={() => {
+                    setShowVoiceRecorder(!showVoiceRecorder);
+                    setShowAttachments(false);
+                  }}
+                  disabled={sending}
+                >
+                  <Mic className={cn(
+                    "w-4 h-4",
+                    isRecordingVoice ? "text-red-500 animate-pulse" : "text-muted-foreground"
+                  )} />
+                </Button>
               </div>
-              {/* Attachment button */}
-              <button
-                type="button"
-                className={`p-1 hover:bg-muted rounded-full transition-colors ${showAttachments ? 'bg-muted' : ''}`}
-                onClick={() => setShowAttachments(!showAttachments)}
-                aria-label="Attach file"
-              >
-                <Paperclip className="w-4 h-4 text-muted-foreground" />
-              </button>
-              {/* Voice record button */}
-              <button
-                type="button"
-                className={`p-1 hover:bg-muted rounded-full transition-colors ${showVoiceRecorder || isRecordingVoice ? 'bg-muted' : ''}`}
-                onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
-                aria-label="Record voice message"
-              >
-                <Mic className={`w-4 h-4 ${isRecordingVoice ? 'text-red-500' : 'text-muted-foreground'}`} />
-              </button>
             </div>
           </div>
           
-          <Button 
-            type="submit" 
-            variant="romantic" 
+          {/* Send Button */}
+          <Button
+            type="submit"
             disabled={sending || !newMessage.trim()}
-            className="rounded-full px-6 hover:scale-105 transition-transform flex items-center gap-2"
+            className={cn(
+              "rounded-full p-3 shadow-md transition-all duration-200",
+              "bg-gradient-to-r from-primary to-primary/90",
+              "hover:shadow-lg hover:scale-105 active:scale-95",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            )}
           >
             {sending ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5 text-white" />
             )}
           </Button>
         </form>
         
-        {/* Character count */}
-        {newMessage.length > 400 && (
-          <p className="text-xs text-muted-foreground mt-2 text-right">
-            {500 - newMessage.length} characters remaining
-          </p>
-        )}
-        
-        {/* Typing indicator */}
-        {isTyping && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Typing...
-          </p>
-        )}
+        {/* Footer Info */}
+        <div className="flex items-center justify-between mt-2 px-1">
+          {/* Character Count */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {newMessage.length > 400 && (
+              <span className={cn(
+                "font-medium transition-colors",
+                newMessage.length > 450 ? "text-destructive" : "text-warning"
+              )}>
+                {500 - newMessage.length} characters left
+              </span>
+            )}
+            {isTyping && (
+              <span className="text-primary font-medium">Typing...</span>
+            )}
+          </div>
+          
+          {/* Connection Status */}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className={cn(
+              "w-2 h-2 rounded-full transition-colors",
+              connectionStatus === 'connected' ? "bg-green-500" :
+              connectionStatus === 'connecting' ? "bg-yellow-500 animate-pulse" :
+              "bg-red-500"
+            )} />
+            <span className="capitalize">{connectionStatus}</span>
+          </div>
+        </div>
       </footer>
-      <audio ref={notificationAudioRef} src="/notification.mp3" preload="auto" />
+      
+      {/* Notification Audio */}
+      <audio 
+        ref={notificationAudioRef} 
+        src="/notification.mp3" 
+        preload="auto" 
+        className="hidden" 
+      />
     </div>
   );
 };

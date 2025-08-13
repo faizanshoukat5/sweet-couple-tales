@@ -1,7 +1,10 @@
+/* Enhanced Chat Animations - Industry Standard */
+
+/* Message slide-in animation */
 @keyframes fadeSlideIn {
   0% {
     opacity: 0;
-    transform: translateY(24px) scale(0.98);
+    transform: translateY(16px) scale(0.95);
   }
   100% {
     opacity: 1;
@@ -9,6 +12,182 @@
   }
 }
 
+/* Shimmer effect for loading messages */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Bounce animation for typing dots */
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Pulse animation for connection status */
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* Smooth slide animation for reply preview */
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 100px;
+  }
+}
+
+/* Scale animation for send button */
+@keyframes sendButtonPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Swipe feedback animation */
+@keyframes swipeFeedback {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Swipe success feedback */
+@keyframes swipeSuccess {
+  0% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(34, 197, 94, 0.1);
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
+/* Application of animations */
 .animate-fade-slide-in {
-  animation: fadeSlideIn 0.35s cubic-bezier(0.4,0,0.2,1);
+  animation: fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-typing-bounce {
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.animate-status-pulse {
+  animation: statusPulse 2s infinite;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.25s ease-out;
+}
+
+.animate-send-pulse {
+  animation: sendButtonPulse 0.2s ease-out;
+}
+
+.animate-swipe-feedback {
+  animation: swipeFeedback 0.3s ease-out;
+}
+
+/* Hover and focus states */
+.message-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-out;
+}
+
+.input-focus {
+  box-shadow: 0 0 0 2px rgba(var(--primary), 0.2);
+  border-color: hsl(var(--primary));
+  transition: all 0.2s ease-out;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  .animate-fade-slide-in {
+    animation-duration: 0.25s;
+  }
+  
+  .message-bubble:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease-out;
+  }
+}
+
+/* Swipe gesture feedback classes */
+.swipe-feedback {
+  background-color: rgba(var(--primary), 0.1) !important;
+  border-color: hsl(var(--primary)) !important;
+  transform: scale(1.01);
+  transition: all 0.2s ease-out;
+}
+
+.swipe-success {
+  animation: swipeSuccess 0.3s ease-out;
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-slide-in,
+  .animate-shimmer,
+  .animate-typing-bounce,
+  .animate-status-pulse,
+  .animate-slide-down,
+  .animate-send-pulse,
+  .animate-swipe-feedback {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  
+  .message-bubble:hover,
+  .message-bubble:active {
+    transform: none !important;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .message-bubble:hover {
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+  }
 }
