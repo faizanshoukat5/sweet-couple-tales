@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobile } from "@/hooks/useMobile";
 import { Button } from "@/components/ui/button";
-import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, Phone, Video, Info, ArrowLeft } from "lucide-react";
+import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft } from "lucide-react";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
 import { AttachmentUpload, AttachmentDisplay } from './AttachmentUpload';
@@ -906,22 +906,13 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           </div>
         </div>
         
-        {/* Header Actions */}
-        <div className="flex items-center gap-2">
-          {!isMobile && (
-            <>
-              <Button variant="ghost" size="sm" className="p-2 h-auto">
-                <Phone className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="p-2 h-auto">
-                <Video className="w-4 h-4" />
-              </Button>
-            </>
-          )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-2 h-auto"
+        {/* Header Actions (clean, minimal) */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
+            title="Chat options"
             onClick={() => setShowChatInfo(!showChatInfo)}
           >
             <MoreVertical className="w-4 h-4" />
