@@ -1007,7 +1007,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                       className={cn(
                         "relative max-w-[85%] transition-all duration-200 ease-out cursor-pointer",
                         isMobile ? "max-w-[75%]" : "max-w-[70%]",
-                        msg.id.startsWith('temp-') && "opacity-70 scale-95"
+                        msg.id.startsWith('temp-') && "scale-95"
                       )}
                       onTouchStart={(e) => handleMessageTouchStart(e, msg)}
                       onTouchMove={(e) => handleMessageTouchMove(e, msg)}
@@ -1018,23 +1018,25 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                     >
                       {/* Reply Preview */}
                       {repliedMsg && (
-                        <div className={cn(
-                          "mb-2 p-2 rounded-lg border-l-4 bg-muted/30 text-sm",
-                          isOwn 
-                            ? "border-white/30 text-white/80" 
-                            : "border-primary text-muted-foreground"
-                        )}>
+                        <div
+                          className={cn(
+                            "reply-preview mb-2 p-2 rounded-lg border-l-4 text-sm",
+                            // Ensure high contrast regardless of theme
+                            isOwn
+                              ? "bg-primary/15 border-primary/60 text-foreground"
+                              : "bg-muted/70 border-primary/60 text-foreground"
+                          )}
+                        >
                           <div className="flex items-center gap-1 mb-1">
                             <Reply className="w-3 h-3" />
-                            <span className="text-xs font-medium">
+                            <span className="text-xs font-semibold">
                               {repliedMsg.sender_id === user?.id ? "You" : "Partner"}
                             </span>
                           </div>
-                          <p className="truncate text-xs">
-                            {repliedMsg.content.length > 50 
-                              ? repliedMsg.content.slice(0, 50) + '…' 
-                              : repliedMsg.content
-                            }
+                          <p className="truncate text-xs font-semibold opacity-100">
+                            {repliedMsg.content.length > 50
+                              ? repliedMsg.content.slice(0, 50) + "…"
+                              : repliedMsg.content}
                           </p>
                         </div>
                       )}
