@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobile } from "@/hooks/useMobile";
 import { Button } from "@/components/ui/button";
-import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft } from "lucide-react";
+import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft, Info, Bell, BellOff, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
 import { AttachmentUpload, AttachmentDisplay } from './AttachmentUpload';
@@ -155,6 +156,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [showChatInfo, setShowChatInfo] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
   
   // Advanced swipe gesture handling
   const swipeData = useRef<{
@@ -908,17 +912,78 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         {/* Header Actions (clean, minimal) */}
         <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
-            title="Chat options"
-            onClick={() => setShowChatInfo(!showChatInfo)}
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
+                title="Chat options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuItem onClick={() => setShowChatInfo((v) => !v)}>
+                <Info className="mr-2 h-4 w-4" />
+                <span>Chat info</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setIsMuted((m) => !m);
+                toast({ title: !isMuted ? 'Notifications muted' : 'Notifications unmuted' });
+              }}>
+                {isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                <span>{isMuted ? 'Unmute notifications' : 'Mute notifications'}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowClearConfirm(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Clear chat…</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
+
+      {/* Clear Chat Confirm Dialog */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent>
+          <DialogTitle>Clear conversation?</DialogTitle>
+          <DialogDescription>
+            This will permanently remove all messages in this conversation from your view. This action cannot be undone.
+          </DialogDescription>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowClearConfirm(false)} disabled={clearing}>Cancel</Button>
+            <Button variant="destructive" onClick={async () => {
+              setClearing(true);
+              try {
+                if (!user?.id || !partnerId) throw new Error('Missing user or partner');
+                // Delete the entire conversation for both directions
+                const del1 = supabase
+                  .from('messages')
+                  .delete()
+                  .match({ sender_id: user.id, receiver_id: partnerId });
+                const del2 = supabase
+                  .from('messages')
+                  .delete()
+                  .match({ sender_id: partnerId, receiver_id: user.id });
+                const [{ error: e1 }, { error: e2 }] = await Promise.all([del1, del2]);
+                if (e1 || e2) throw e1 || e2;
+                setMessages([]);
+                toast({ title: 'Chat cleared' });
+              } catch (err) {
+                console.error(err);
+                toast({ title: 'Failed to clear chat', description: 'Please ensure database policies allow deleting messages.', variant: 'destructive' });
+              } finally {
+                setClearing(false);
+                setShowClearConfirm(false);
+              }
+            }} disabled={clearing}>
+              {clearing ? 'Clearing…' : 'Clear chat'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Messages Container */}
       <div 
         ref={messagesContainerRef} 
