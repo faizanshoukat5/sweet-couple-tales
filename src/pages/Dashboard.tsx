@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemories } from '@/hooks/useMemories';
 import { useAlbums } from '@/hooks/useAlbums';
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Heart, Calendar, Tag, Search, Grid, List, User } from 'lucide-react';
+import { Plus, Heart, Calendar, Tag, Search, Grid, List, User, MessageCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import CreateMemoryModal from '@/components/CreateMemoryModal';
 import MemoryCard from '@/components/MemoryCard';
 import VirtualizedMemoryList from '@/components/VirtualizedMemoryList';
@@ -132,6 +133,24 @@ const Dashboard = () => {
     const diff = (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     return diff >= 0 && diff <= 30;
   });
+
+  // Daily memory-adding streak (consecutive days including today)
+  const streak = useMemo(() => {
+    if (!memories || memories.length === 0) return 0;
+    const dates = new Set(
+      memories
+        .map(m => (m.memory_date || '').split('T')[0])
+        .filter(Boolean)
+    );
+    let days = 0;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    while (dates.has(d.toISOString().split('T')[0])) {
+      days++;
+      d.setDate(d.getDate() - 1);
+    }
+    return days;
+  }, [memories]);
 
   // Debounce search input
   useEffect(() => {
@@ -269,19 +288,21 @@ const Dashboard = () => {
       
       const { data, error } = await supabase
         .from('couples')
-        .select('user1_id, user2_id, status')
+        .select('id, user1_id, user2_id, status')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-        .eq('status', 'accepted');
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false })
+        .limit(1);
       
       console.log('Couples query result:', data, error);
       
-      if (!error && Array.isArray(data) && data.length > 0) {
-        const row = data[0];
-        const otherId = row.user1_id === user.id ? row.user2_id : row.user1_id;
+      if (!error && data && data.length > 0) {
+        const couple = data[0];
+        const otherId = couple.user1_id === user.id ? couple.user2_id : couple.user1_id;
         console.log('Setting partner ID to:', otherId);
         setPartnerId(otherId);
       } else {
-        console.log('No partner found or error occurred');
+        console.log('No partner found or error occurred:', error);
         setPartnerId(null);
       }
     };
@@ -322,48 +343,130 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-100">
       <div className="container mx-auto px-4 py-10">
-        {/* Profile & Partner Section */}
-        <div className="mb-10 flex flex-col md:flex-row items-center gap-8 md:gap-12 bg-white/80 rounded-2xl shadow-lg p-6 md:p-10 border border-primary/10">
-          <div className="relative group">
-            <img
-              src={profile?.avatar_url || '/placeholder.svg'}
-              alt="Your profile avatar"
-              className="w-24 h-24 rounded-full object-cover border-4 border-primary shadow-md group-hover:scale-105 transition-transform bg-muted"
-              onError={e => { e.currentTarget.src = '/placeholder.svg'; }}
-              style={{ transition: 'box-shadow 0.2s' }}
-            />
-            <span className="absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white bg-green-400 shadow-md" title="You are online"></span>
-          </div>
-          <div className="flex-1">
-            <h1 className="font-serif text-4xl font-extrabold text-primary mb-2 flex items-center gap-2">
-              <Heart className="w-7 h-7 text-rose-400 animate-pulse" />
-              Your Memory Collection
-            </h1>
-            <p className="text-lg text-muted-foreground mb-2">
-              Welcome back, <span className="font-semibold text-primary">{profile?.display_name || user?.email?.split('@')[0]}</span>!<br />
-              <span className="text-base">You have <span className="font-bold text-rose-500">{memories.length}</span> beautiful memories saved ✨</span>
-            </p>
-            {partnerProfile && (
-              <div className="flex items-center gap-3 mt-3 bg-gradient-to-r from-rose-100 to-pink-50 rounded-xl px-4 py-2 shadow-sm">
-                <span className="text-sm text-muted-foreground">Partner:</span>
-                {partnerProfile.avatar_url && (
+        {/* Profile & Partner Hero Section (redesigned + enhanced) */}
+        {(() => {
+          const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Friend';
+          const memoryLabel = memories.length === 1 ? 'memory' : 'memories';
+          const hour = new Date().getHours();
+          const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+          const milestones = [1, 5, 10, 25, 50, 100];
+          const reached = milestones.findLast(m => memories.length >= m);
+          return (
+            <div className="mb-10 rounded-[28px] p-[1px] bg-gradient-to-r from-rose-200/70 to-pink-200/70">
+              <section className="relative overflow-hidden rounded-[26px] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-pink-50 shadow-xl transition-shadow hover:shadow-2xl animate-in fade-in-0 slide-in-from-bottom-2">
+                {/* decorative glow */}
+                <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-rose-200/30 blur-3xl" />
+                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 p-6 md:p-10">
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="absolute inset-0 -m-1 rounded-full bg-gradient-to-br from-rose-300/40 to-pink-300/40 blur" aria-hidden />
                   <img
-                    src={partnerProfile.avatar_url}
-                    alt="Partner avatar"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-rose-300 bg-muted shadow"
+                    src={profile?.avatar_url || '/placeholder.svg'}
+                    alt="Your profile avatar"
+                    className="relative w-24 h-24 md:w-28 md:h-28 rounded-full object-cover ring-4 ring-white/80 shadow-lg bg-muted"
                     onError={e => { e.currentTarget.src = '/placeholder.svg'; }}
-                    title={partnerProfile.display_name || partnerProfile.email}
                   />
-                )}
-                <span className="text-base font-semibold text-rose-600">
-                  {partnerProfile.display_name || partnerProfile.email}
-                </span>
-                {/* Example: show online badge (replace with real status if available) */}
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Online</span>
-              </div>
-            )}
-          </div>
-        </div>
+                  <span
+                    className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white shadow ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}
+                    title={isOnline ? 'You are online' : 'You are offline'}
+                  />
+                </div>
+
+                {/* Heading + Copy */}
+                <div className="flex-1 text-center md:text-left">
+                  <h1 className="font-serif text-3xl md:text-4xl font-extrabold tracking-tight text-rose-600 flex items-center justify-center md:justify-start gap-2">
+                    <span className="text-rose-400">♡</span>
+                    Your Memory Collection
+                  </h1>
+                  <p className="mt-2 text-base md:text-lg text-muted-foreground">
+                    {greeting}, <span className="font-semibold text-rose-700">{displayName}</span>!
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-2 shadow-sm border border-rose-100">
+                    <Heart className="w-4 h-4 text-rose-400" />
+                    <span className="text-sm md:text-base">
+                      You have <span className="font-bold text-rose-600">{memories.length}</span> beautiful {memoryLabel} saved ✨
+                    </span>
+                    {reached ? (
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="ml-2 hidden sm:inline-flex items-center rounded-full bg-rose-100 text-rose-700 text-xs font-semibold px-2 py-0.5 border border-rose-200 cursor-default">
+                              Milestone {reached}!
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">You've saved {memories.length} memories — keep going!</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : null}
+                  </div>
+
+                  {/* mini stats chips */}
+                  <div className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs">
+                    <span className="rounded-full bg-white/70 border border-rose-100 px-2.5 py-1 text-rose-700 shadow-sm">{albums.length} albums</span>
+                    <span className="rounded-full bg-white/70 border border-rose-100 px-2.5 py-1 text-rose-700 shadow-sm">{upcomingDates.length} upcoming dates</span>
+                    {streak > 0 && (
+                      <span className="rounded-full bg-amber-100/80 border border-amber-200 px-2.5 py-1 text-amber-800 shadow-sm">🔥 {streak}-day streak</span>
+                    )}
+                  </div>
+
+                  {/* Partner strip */}
+                  {partnerProfile && (
+                    <div className="mt-4 flex items-center justify-center md:justify-start" aria-live="polite">
+                      <div className="flex items-center gap-3 w-full md:w-auto max-w-full rounded-2xl px-4 py-2 bg-gradient-to-r from-rose-100/90 to-pink-50/90 border border-rose-100 shadow-sm">
+                        <span className="text-sm text-muted-foreground">Partner</span>
+                        {partnerProfile.avatar_url ? (
+                          <img
+                            src={partnerProfile.avatar_url}
+                            alt="Partner avatar"
+                            className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow bg-muted"
+                            onError={e => { e.currentTarget.src = '/placeholder.svg'; }}
+                            title={partnerProfile.display_name || partnerProfile.email}
+                          />
+                        ) : null}
+                        <span className="truncate text-sm md:text-base font-semibold text-rose-700 max-w-[40vw] md:max-w-none">
+                          {partnerProfile.display_name || partnerProfile.email}
+                        </span>
+                        {partnerTyping ? (
+                          <TooltipProvider delayDuration={150}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span
+                                  className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-100 text-amber-800 border-amber-200 cursor-default`}
+                                >
+                                  typing…
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="center">
+                                {(partnerProfile?.display_name || partnerProfile?.email || 'Partner') + ' is typing…'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span
+                            className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium border ${isOnline ? 'bg-green-100 text-green-700 border-green-200' : 'bg-rose-100 text-rose-700 border-rose-200'}`}
+                          >
+                            {isOnline ? 'Online' : 'Offline'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CTAs */}
+                  <div className="mt-5 flex flex-wrap items-center justify-center md:justify-start gap-3">
+                    <Button variant="romantic" className="rounded-full px-5" onClick={() => setShowCreateModal(true)}>
+                      <Plus className="w-4 h-4 mr-2" /> Add Memory
+                    </Button>
+                    <Button variant="outline" className="rounded-full px-5" onClick={() => setShowChat(true)}>
+                      <MessageCircle className="w-4 h-4 mr-2" /> Open Chat
+                    </Button>
+                  </div>
+                </div>
+                </div>
+              </section>
+            </div>
+          );
+        })()}
 
         {/* Mood Tracker Section */}
         {user && partnerId && (

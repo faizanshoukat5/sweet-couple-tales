@@ -16,16 +16,20 @@ export function usePartnerId(): string | null {
       // Fetch the accepted couple relationship for the current user
       const { data: coupleData, error } = await supabase
         .from('couples')
-        .select('*')
+        .select('id, user1_id, user2_id, status')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .eq('status', 'accepted')
-        .maybeSingle();
-      if (error || !coupleData) {
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error || !coupleData || coupleData.length === 0) {
+        console.log('usePartnerId error:', error);
         setPartnerId(null);
         return;
       }
+      // Take the first (most recent) couple relationship
+      const couple = coupleData[0];
       // Determine the partner's user id
-      const otherId = coupleData.user1_id === user.id ? coupleData.user2_id : coupleData.user1_id;
+      const otherId = couple.user1_id === user.id ? couple.user2_id : couple.user1_id;
       setPartnerId(otherId);
     }
     fetchPartnerId();

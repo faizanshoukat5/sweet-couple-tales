@@ -68,16 +68,18 @@ export const LoveNotesWidget: React.FC = () => {
         .select('id, user1_id, user2_id')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .eq('status', 'accepted')
-        .single();
-      if (coupleError || !coupleData) {
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (coupleError || !coupleData || coupleData.length === 0) {
         setError('Could not find your couple.');
         setLoading(false);
         return;
       }
-      const coupleId = coupleData.id;
+      const couple = coupleData[0];
+      const coupleId = couple.id;
       
       // Get partner's user ID
-      const partnerUserId = coupleData.user1_id === user.id ? coupleData.user2_id : coupleData.user1_id;
+      const partnerUserId = couple.user1_id === user.id ? couple.user2_id : couple.user1_id;
       
       // Get partner's profile ID
       const { data: partnerProfileData, error: partnerProfileError } = await supabase
