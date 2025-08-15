@@ -1,0 +1,42 @@
+.sg-gutter { pointer-events: none; position: absolute; inset-block: 0 0; }
+.sg-inner { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.sg-drop { position: absolute; border-radius: 999px; will-change: transform, opacity; transform: translateY(-20%); animation-name: sg-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+.sg-heart { position: absolute; will-change: transform, opacity; transform: translateY(-20%); animation-name: sg-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+.sg-twinkle { position: absolute; border-radius: 50%; will-change: transform, opacity; animation: sg-twinkle 3s ease-in-out infinite; }
+.sg-petal { position: absolute; border-radius: 50%; will-change: transform, opacity; transform: translateY(-10%); animation-name: sg-petal; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+.sg-letter { position: absolute; will-change: transform, opacity; transform: translateY(-10%); animation-name: sg-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+.sg-bigheart { position: absolute; will-change: transform, opacity; transform: translateY(-12%); animation-name: sg-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+.sg-burst { position: absolute; will-change: transform, opacity; transform-origin: center; animation: sg-burst 10s ease-in-out infinite; }
+.sg-streamer { position: absolute; border-radius: 2px; will-change: transform, opacity; transform: translateY(-10%); animation-name: sg-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+
+/* keyframes - transform-only for GPU-acceleration */
+@keyframes sg-fall {
+  from { transform: translateY(-20%); opacity: 0.0; }
+  10% { opacity: 0.6; }
+  to { transform: translateY(120%); opacity: 0; }
+}
+
+@keyframes sg-twinkle {
+  0% { transform: scale(0); opacity: 0 }
+  40% { transform: scale(1); opacity: 0.6 }
+  100% { transform: scale(0); opacity: 0 }
+}
+
+@keyframes sg-petal {
+  0% { transform: translateY(-10%) rotate(0deg); opacity: 0 }
+  50% { transform: translateY(55%) rotate(120deg); opacity: 0.8 }
+  100% { transform: translateY(110%) rotate(240deg); opacity: 0 }
+}
+
+@keyframes sg-burst {
+  0% { transform: scale(0.7); opacity: 0 }
+  35% { transform: scale(1.05); opacity: 0.8 }
+  100% { transform: scale(0.8); opacity: 0 }
+}
+
+/* duration/offset helpers applied inline with style variables for variety */
+
+/* reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  .sg-drop, .sg-heart, .sg-twinkle, .sg-petal, .sg-letter, .sg-bigheart, .sg-burst, .sg-streamer { animation-duration: 0s !important; opacity: 0.6 !important; }
+}

@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Memory, useMemories } from '@/hooks/useMemories';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   // Prepare memory photos (ensure cover photo is included) for signed URL resolution
   const photoInputs = useMemo(() => {
@@ -39,255 +42,333 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   const storagePath = coverPath && !coverPath.startsWith('http') ? coverPath : undefined;
   const { srcset, fallback } = useResponsiveMemoryImage(storagePath);
 
-  const handleToggleFavorite = async () => {
+  // Stable callbacks to prevent re-renders from affecting dropdown
+  const handleToggleFavorite = useCallback(async () => {
     await toggleFavorite(memory.id, !memory.is_favorite);
-  };
+  }, [memory.id, memory.is_favorite, toggleFavorite]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (window.confirm('Are you sure you want to delete this memory? This action cannot be undone.')) {
       setIsDeleting(true);
       try {
         await deleteMemory(memory.id);
       } catch (error) {
+        console.error('Failed to delete memory:', error);
         setIsDeleting(false);
       }
     }
-  };
+  }, [memory.id, deleteMemory]);
 
-  const memoryDate = parseISO(memory.memory_date);
+  const handleEditClick = useCallback(() => {
+    setShowEditModal(true);
+    setDropdownOpen(false);
+  }, []);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDelete();
+    setDropdownOpen(false);
+  }, [handleDelete]);
+
+  const handleDropdownOpenChange = useCallback((open: boolean) => {
+    setDropdownOpen(open);
+  }, []);
+
+  // Stable image handlers to prevent re-renders
+  const handleImageLoad = useCallback(() => {
+    setImageError(false);
+    setImgLoaded(true);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+  }, []);
+
+  // Reset image loaded state when the source changes
+  useEffect(() => {
+    setImgLoaded(false);
+  }, [firstPhoto, fallback]);
 
   if (viewMode === 'list') {
     return (
-      <Card className="transition-all duration-200 hover:shadow-md">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-4">
-            {/* Photo Preview */}
-            {firstPhoto && !imageError && (
-              <div className="flex-shrink-0">
-                <img
-                  src={firstPhoto}
-                  alt={memory.title}
-                  className="w-16 h-16 object-cover rounded-lg"
-                  loading="lazy"
-                  onError={() => setImageError(true)}
-                />
-              </div>
-            )}
-            {(!firstPhoto || imageError) && (
-              <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-muted/40 flex items-center justify-center text-xs text-muted-foreground">
-                No Photo
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg line-clamp-1">{memory.title}</h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <Calendar className="w-3 h-3" />
-                    {format(memoryDate, 'MMM d, yyyy')}
-                    {memory.photos.length > 1 && (
-                      <span className="text-xs">• {memory.photos.length} photos</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleToggleFavorite}
-                    className={cn(
-                      "p-2",
-                      memory.is_favorite && "text-red-500"
-                    )}
-                  >
-                    <Heart className={cn("w-4 h-4", memory.is_favorite && "fill-current")} />
-                  </Button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="p-2">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              {memory.content && (
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                  {memory.content}
-                </p>
+  <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-3 bg-white/90 backdrop-blur rounded-lg border ring-1 ring-black/5 shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5">
+        {/* Image */}
+  <div className="relative w-18 h-18 sm:w-22 sm:h-22 rounded-md overflow-hidden bg-gray-100 flex-shrink-0" style={{width:80, height:80}}>
+          {firstPhoto && !imageError ? (
+            <>
+              <img
+                src={firstPhoto}
+                alt={memory.title}
+                className="w-full h-full object-cover transition-transform duration-400 ease-out group-hover:scale-[1.02]"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                sizes="80px"
+                srcSet={srcset}
+              />
+              {!imgLoaded && (
+                <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-gray-100 to-gray-200" />
               )}
+              {fallback && (
+                <img
+                  src={fallback}
+                  alt={memory.title}
+                  className="absolute inset-0 w-full h-full object-cover -z-10"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <Heart className="w-6 h-6 text-gray-400" />
+            </div>
+          )}
+        </div>
 
-              {memory.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {memory.tags.slice(0, 3).map(tag => (
-                    <Badge key={tag} variant="outline" className="text-xs">
+        {/* Content */}
+  <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{memory.title}</h3>
+              <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mt-1">{memory.content}</p>
+            </div>
+            
+            {/* Actions */}
+            <div
+              className={cn(
+                "flex items-center gap-2 ml-4 z-10",
+                dropdownOpen ? "" : ""
+              )}
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); handleToggleFavorite(); }}
+                className={cn(
+                  "inline-flex items-center justify-center rounded-full p-1",
+                  memory.is_favorite ? "text-red-500" : "text-gray-400"
+                )}
+                aria-pressed={memory.is_favorite}
+                aria-label={memory.is_favorite ? 'Unfavorite memory' : 'Favorite memory'}
+                title={memory.is_favorite ? 'Unfavorite' : 'Favorite'}
+              >
+                <Heart className={cn("w-4 h-4", memory.is_favorite && "fill-current")} />
+              </button>
+              
+              <DropdownMenu open={dropdownOpen} onOpenChange={handleDropdownOpenChange} modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="ml-2 inline-flex items-center justify-center rounded-full p-1 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                    onClick={(e) => { e.stopPropagation(); setDropdownOpen(true); }}
+                    data-menu-trigger
+                    aria-haspopup="menu"
+                    aria-expanded={dropdownOpen}
+                    title="More actions"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={6}
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                  onPointerDownOutside={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target?.closest('[data-menu-trigger]')) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  <DropdownMenuItem onClick={handleEditClick}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDeleteClick}
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Metadata */}
+  <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500">
+            <div className="flex items-center gap-1">
+  <Calendar className="w-4 h-4" />
+              <span>{format(parseISO(memory.memory_date), 'MMM d, yyyy')}</span>
+            </div>
+            {memory.tags.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Tag className="w-4 h-4" />
+                <div className="flex gap-1">
+                  {memory.tags.slice(0, 2).map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
                       {tag}
                     </Badge>
                   ))}
-                  {memory.tags.length > 3 && (
+                  {memory.tags.length > 2 && (
                     <Badge variant="outline" className="text-xs">
-                      +{memory.tags.length - 3} more
+                      +{memory.tags.length - 2}
                     </Badge>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {showEditModal && (
+          <EditMemoryModal
+            memory={memory}
+            open={showEditModal}
+            onOpenChange={setShowEditModal}
+          />
+        )}
+      </div>
     );
   }
 
+  // Grid view
   return (
-    <Card className="group transition-all duration-200 hover:shadow-lg hover:-translate-y-1 overflow-hidden">
-      {/* Photo */}
-  {firstPhoto && !imageError && (
-        <div className="relative aspect-video overflow-hidden">
-          <img
-            src={fallback || firstPhoto}
-            srcSet={srcset || undefined}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            alt={memory.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 blur-up"
-            loading="lazy"
-            onError={() => setImageError(true)}
-            onLoad={(e) => e.currentTarget.classList.add('loaded')}
-          />
-      {memory.photos.length > 1 && !imageError && (
-            <Badge className="absolute top-2 right-2 bg-black/50 text-white">
-              +{memory.photos.length - 1}
-            </Badge>
+  <motion.div whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+  <Card className="group relative overflow-hidden rounded-lg border ring-1 ring-black/5 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-transform duration-200">
+      <div className="relative aspect-[3/4] sm:aspect-[3/4]">
+        {firstPhoto && !imageError ? (
+          <>
+            <img
+              src={firstPhoto}
+              alt={memory.title}
+              className="w-full h-full object-cover transition-transform duration-400 ease-out will-change-transform group-hover:scale-[1.02]"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              srcSet={srcset}
+            />
+            {!imgLoaded && (
+              <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-gray-100 to-gray-200" />
+            )}
+            {fallback && (
+              <img
+                src={fallback}
+                alt={memory.title}
+                className="absolute inset-0 w-full h-full object-cover -z-10"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+              />
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <Heart className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
+        
+  {/* Overlay (visual only) */}
+  <div className="absolute inset-0 bg-black/8 opacity-0 group-hover:opacity-70 transition-opacity duration-200 pointer-events-none" />
+        
+        {/* Action buttons */}
+        <div
+          className={cn(
+            "absolute top-2 right-2 flex gap-2 transition-opacity duration-200 z-10",
+            dropdownOpen
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleFavorite}
+        >
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={(e) => { e.stopPropagation(); handleToggleFavorite(); }}
             className={cn(
-              "absolute top-2 left-2 p-2 backdrop-blur-sm",
-              memory.is_favorite 
-                ? "bg-white/20 text-red-500" 
-                : "bg-black/20 text-white hover:bg-white/30"
+              "inline-flex items-center justify-center rounded-full p-1 bg-white/90 backdrop-blur-sm shadow-sm",
+              memory.is_favorite ? "text-red-500" : "text-gray-600"
             )}
+            aria-label={memory.is_favorite ? "Remove from favorites" : "Add to favorites"}
+            title={memory.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Heart className={cn("w-4 h-4", memory.is_favorite && "fill-current")} />
-          </Button>
-        </div>
-      )}
-      {(!firstPhoto || imageError) && (
-        <div className="relative aspect-video overflow-hidden flex items-center justify-center bg-muted/40">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleFavorite}
-            className={cn(
-              "absolute top-2 left-2 p-2 backdrop-blur-sm",
-              memory.is_favorite 
-                ? "bg-white/20 text-red-500" 
-                : "bg-black/20 text-white hover:bg-white/30"
-            )}
-          >
-            <Heart className={cn("w-4 h-4", memory.is_favorite && "fill-current")} />
-          </Button>
-          <span className="text-xs text-muted-foreground">No Photo</span>
-        </div>
-      )}
-
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <h3 className="font-semibold text-lg line-clamp-2 flex-1">{memory.title}</h3>
+          </motion.button>
           
-          <DropdownMenu>
+      <DropdownMenu open={dropdownOpen} onOpenChange={handleDropdownOpenChange} modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm"
+                onClick={(e) => { e.stopPropagation(); setDropdownOpen(true); }}
+                data-menu-trigger
+                aria-haspopup="menu"
+                aria-expanded={dropdownOpen}
+                title="More actions"
+              >
+                <MoreHorizontal className={"w-4 h-4"} />
+              </motion.button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+            <DropdownMenuContent 
+              align="end" 
+              sideOffset={6}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+              onPointerDownOutside={(e) => {
+                const target = e.target as HTMLElement;
+                if (target?.closest('[data-menu-trigger]')) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              <DropdownMenuItem onClick={handleEditClick}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
+                className="text-red-600 focus:text-red-600 focus:bg-red-50"
                 disabled={isDeleting}
-                className="text-destructive"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-          <Calendar className="w-3 h-3" />
-          {format(memoryDate, 'MMM d, yyyy')}
+      </div>
+      
+      <CardContent className="p-3 sm:p-3">
+        <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-1 sm:mb-1.5 line-clamp-1">{memory.title}</h3>
+        <p className="text-gray-600 text-[12px] sm:text-sm mb-2 sm:mb-2 line-clamp-2">{memory.content}</p>
+        
+        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{format(parseISO(memory.memory_date), 'MMM d, yyyy')}</span>
+          </div>
+          
+          {memory.tags.length > 0 && (
+            <div className="flex gap-1">
+              {memory.tags.slice(0, 2).map((tag, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+              {memory.tags.length > 2 && (
+                <Badge variant="outline" className="text-xs">
+                  +{memory.tags.length - 2}
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
-
-        {memory.content && (
-          <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-            {memory.content}
-          </p>
-        )}
-
-        {memory.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {memory.tags.slice(0, 2).map(tag => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                <Tag className="w-2 h-2 mr-1" />
-                {tag}
-              </Badge>
-            ))}
-            {memory.tags.length > 2 && (
-              <Badge variant="outline" className="text-xs">
-                +{memory.tags.length - 2}
-              </Badge>
-            )}
-          </div>
-        )}
-
-        {/* Show favorite indicator if no photos */}
-        {memory.photos.length === 0 && memory.is_favorite && (
-          <div className="mt-3 pt-3 border-t">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggleFavorite}
-              className="text-red-500 p-2"
-            >
-              <Heart className="w-4 h-4 fill-current mr-2" />
-              Favorite
-            </Button>
-          </div>
-        )}
       </CardContent>
 
-      {/* Edit Modal */}
-      <EditMemoryModal
-        memory={memory}
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-      />
+      {showEditModal && (
+        <EditMemoryModal
+          memory={memory}
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+        />
+      )}
     </Card>
+    </motion.div>
   );
 };
 

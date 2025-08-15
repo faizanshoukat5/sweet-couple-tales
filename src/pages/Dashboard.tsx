@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemories } from '@/hooks/useMemories';
+import RomanticDecor from '@/components/RomanticDecor';
+import SideGutterRain from '@/components/SideGutterRain';
+import { toast } from '@/hooks/use-toast';
 import { useAlbums } from '@/hooks/useAlbums';
 import { useGoals } from '@/hooks/useGoals';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -220,12 +223,10 @@ const Dashboard = () => {
         eventDate.getMonth() === today.getMonth()
       ) {
         // Show toast notification
-        import('@/hooks/use-toast').then(({ toast }) => {
-          toast({
-            title: `Today is ${date.title}! 🎉`,
-            description: `Don't forget to celebrate your special day.`,
-            variant: 'default',
-          });
+        toast({
+          title: `Today is ${date.title}! 🎉`,
+          description: `Don't forget to celebrate your special day.`,
+          variant: 'default',
         });
       }
     });
@@ -341,8 +342,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-100">
-      <div className="container mx-auto px-4 py-10">
+    <div className="relative min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-100">
+      <RomanticDecor intensity="medium" className="hidden md:block" />
+  <SideGutterRain intensity="festive" density={2.4} heartEvery={3} enablePetals speed="calm" position="fixed" topOffset={72} className="hidden md:block" />
+  <div className="relative container mx-auto px-4 py-8 max-w-4xl">
         {/* Profile & Partner Hero Section (redesigned + enhanced) */}
         {(() => {
           const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Friend';
@@ -498,16 +501,16 @@ const Dashboard = () => {
         )}
 
         {/* Stats Summary (refactored) */}
-        <StatsBar className="mb-10">
+  <StatsBar className="mb-10">
           <StatCard label="Memories" value={memories.length} meta={<><Heart className="w-3 h-3" /> {memories.filter(m=>m.is_favorite).length} favorites</>} />
           <StatCard label="Albums" value={albums.length} gradient="bg-gradient-to-br from-pink-500 to-rose-400" meta={<span>Organized</span>} />
           <StatCard label="Goals" value={goals.length} gradient="bg-gradient-to-br from-rose-400 to-pink-300" meta={<span>{goals.filter(g=>g.completed).length} completed</span>} />
           <StatCard label="Upcoming Dates" value={upcomingDates.length} gradient="bg-gradient-to-br from-pink-400 to-rose-300" meta={<span>Next 30 days</span>} />
           <StatCard label="Partner" value={partnerProfile?.display_name || partnerProfile?.email || '—'} gradient="bg-gradient-to-br from-rose-300 to-pink-200 text-rose-800" meta={<span>Connection</span>} className="hidden xl:flex" />
-        </StatsBar>
+  </StatsBar>
 
         {/* Search, Filters & Sort */}
-        <Card className="mb-10 shadow-xl border-0 bg-white/90">
+  <Card className="mb-10 shadow-xl border-0 bg-white/90">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row gap-6 items-center">
               <div className="relative flex-1">
@@ -591,7 +594,7 @@ const Dashboard = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+         </Card>
 
         {/* Memory Debug Info */}
         <div className="mb-4 text-xs text-rose-500/70 font-mono space-y-1">
@@ -601,7 +604,7 @@ const Dashboard = () => {
           )}
         </div>
         {/* Memory Tabs */}
-        <SectionCard
+  <SectionCard
           id="memories"
           title="Memories"
           subtitle="Browse, filter & cherish your story"
@@ -675,10 +678,10 @@ const Dashboard = () => {
               </TabsContent>
             </Tabs>
           </div>
-        </SectionCard>
+  </SectionCard>
 
         {/* Goals List */}
-        <div className="mt-14" id="goals">
+  <div className="mt-14" id="goals">
           <SectionCard
             title="Your Shared Goals & Bucket List"
             subtitle="Track dreams you build together"
@@ -687,10 +690,10 @@ const Dashboard = () => {
           >
             <GoalsList />
           </SectionCard>
-        </div>
+  </div>
 
         {/* Important Dates */}
-        <div className="mt-14" id="dates">
+  <div className="mt-14" id="dates">
           <SectionCard
             title="Important Dates & Anniversaries"
             subtitle="Never miss a special moment"
@@ -699,10 +702,10 @@ const Dashboard = () => {
           >
             <ImportantDates />
           </SectionCard>
-        </div>
+  </div>
 
         {/* Albums Section */}
-        <section id="albums" className="mt-14">
+  <section id="albums" className="mt-14">
           <SectionCard
             title="Photo Albums"
             subtitle="Organize and revisit your journey together"
@@ -736,11 +739,11 @@ const Dashboard = () => {
               </div>
             </div>
           )}
-        </section>
+  </section>
 
 
         {/* Shared Calendar */}
-        <div className="mt-14" id="calendar">
+  <div className="mt-14" id="calendar">
           <SectionCard
             title="Shared Calendar"
             subtitle="Plan and view milestones together"
@@ -749,7 +752,7 @@ const Dashboard = () => {
           >
             <SharedCalendar />
           </SectionCard>
-        </div>
+  </div>
 
         {/* Love Notes Widget (moved here) */}
         <LoveNotesWidget />
