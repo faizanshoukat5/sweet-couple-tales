@@ -549,6 +549,53 @@ export type Database = {
         }
         Relationships: []
       }
+      period_cycles: {
+        Row: {
+          id: string
+          user_id: string
+          cycle_start_date: string
+          cycle_length: number
+          period_length: number
+          symptoms: string[]
+          mood: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          cycle_start_date: string
+          cycle_length: number
+          period_length: number
+          symptoms?: string[]
+          mood?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          cycle_start_date?: string
+          cycle_length?: number
+          period_length?: number
+          symptoms?: string[]
+          mood?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_cycles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_emoji: string | null

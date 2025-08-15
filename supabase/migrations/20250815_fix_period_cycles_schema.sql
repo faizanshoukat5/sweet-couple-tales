@@ -1,4 +1,8 @@
--- Enhanced period cycle tracking table
+-- Fix period cycles table schema to match CycleTrackerCard component
+-- Drop existing table if it exists with wrong schema
+DROP TABLE IF EXISTS public.period_cycles CASCADE;
+
+-- Enhanced period cycle tracking table with correct schema
 CREATE TABLE IF NOT EXISTS public.period_cycles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

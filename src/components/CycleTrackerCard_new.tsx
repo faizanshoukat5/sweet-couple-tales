@@ -262,204 +262,224 @@ export const CycleTrackerCard: React.FC = () => {
 
   if (loading) {
     return (
-      <Card className="bg-gradient-to-br from-rose-50 via-white to-pink-50 border-0 shadow-lg rounded-2xl">
+      <Card className="bg-gradient-to-br from-rose-50 via-white to-pink-50 border-0 shadow-xl rounded-2xl">
         <CardContent className="p-6 text-center">
-          <div className="animate-pulse inline-block rounded-full p-4 bg-rose-100 mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-rose-600" />
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400 mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading cycle data...</p>
         </CardContent>
       </Card>
     );
   }
 
-  // Redesigned layout: left summary + right details
   return (
     <TooltipProvider>
-      <Card className="bg-white dark:bg-slate-900 border-0 shadow-2xl rounded-3xl overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-          {/* Left panel - big summary */}
-          <div className="md:col-span-1 bg-gradient-to-b from-rose-50 to-white p-4 flex flex-col items-center justify-center gap-3">
+      <Card className="bg-gradient-to-br from-rose-50 via-white to-pink-50 border-0 shadow-xl rounded-2xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-rose-100 to-pink-100 pb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-rose-200 p-3">
-                <Calendar className="w-6 h-6 text-rose-700" />
-              </div>
+              <span className="bg-rose-200 text-rose-700 rounded-full p-3 shadow-sm">
+                <Calendar className="w-6 h-6" />
+              </span>
               <div>
-                <h3 className="text-lg font-semibold text-rose-700">Cycle Tracker</h3>
-                <p className="text-sm text-rose-500">Personalized insights</p>
+                <CardTitle className="font-serif text-2xl font-bold text-rose-700">Cycle Tracker</CardTitle>
+                <p className="text-rose-600 text-sm font-medium mt-1">Track your natural rhythm</p>
               </div>
             </div>
-
-            {prediction ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="relative">
-                  <svg viewBox="0 0 36 36" className="w-28 h-28">
-                    <path className="text-gray-200" d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="3.5" />
-                    <path className="text-rose-500" d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      strokeDasharray={`${(prediction.cycleDay / prediction.avgCycleLength) * 100}, 100`} />
-                    <text x="18" y="20.5" textAnchor="middle" className="text-rose-700 font-semibold" style={{ fontSize: '6px' }}>{`Day ${prediction.cycleDay}`}</text>
-                  </svg>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 text-sm">
-                    {getPhaseIcon(prediction.phase)}
-                    <span className="font-medium text-gray-800 capitalize">{prediction.phase}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">Avg {prediction.avgCycleLength}d • Period {prediction.avgPeriodLength}d</div>
-                </div>
-                <div className="flex gap-2">
-                  <Badge className={`${getPhaseColor(prediction.phase)} text-[10px]`}>Phase</Badge>
-                  <Badge variant="outline" className="text-[10px]">Regularity {prediction.regularityScore}%</Badge>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">No cycles logged yet.</p>
-                <Button variant="romantic" className="mt-3" onClick={() => setShowAddModal(true)}>
-                  <Plus className="w-4 h-4 mr-2" /> Add First Cycle
-                </Button>
-              </div>
-            )}
+            <Button variant="outline" size="sm" onClick={() => setShowAddModal(true)} className="rounded-full bg-white/80 border-rose-200 hover:bg-rose-50">
+              <Plus className="w-4 h-4 mr-2" /> Log Cycle
+            </Button>
           </div>
+        </CardHeader>
 
-          {/* Right panel - details */}
-          <div className="md:col-span-2 p-4 space-y-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <h4 className="text-base font-semibold text-slate-800">Upcoming</h4>
-                <p className="text-xs text-muted-foreground">Predicted events based on your data</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => fetchCycles()}>Refresh</Button>
-                <Button variant="outline" onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" /></Button>
-              </div>
+        <CardContent className="p-6">
+          {cycles.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="w-16 h-16 text-rose-200 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-rose-600 mb-2">Start Tracking</h3>
+              <p className="text-muted-foreground mb-4">Begin tracking your cycle to get personalized insights and predictions.</p>
+              <Button variant="romantic" onClick={() => setShowAddModal(true)} className="rounded-full px-6">
+                <Plus className="w-4 h-4 mr-2" /> Add First Cycle
+              </Button>
             </div>
-            <div className="-mx-4 md:mx-0">
-              <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible px-4 md:px-0">
-                {prediction ? (
-                  prediction.upcomingEvents.slice(0, 3).map((ev, i) => (
-                    <div key={i} className="min-w-[170px] md:min-w-0 p-3 rounded-xl border bg-white/70">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-md bg-rose-50">
-                          {ev.type === 'period' && <Droplets className="w-5 h-5 text-red-500" />}
-                          {ev.type === 'fertile' && <TrendingUp className="w-5 h-5 text-green-500" />}
-                          {ev.type === 'ovulation' && <Heart className="w-5 h-5 text-pink-500" />}
-                        </div>
-                        <div>
-                          <div className="font-medium text-slate-800 text-sm">{ev.event}</div>
-                          <div className="text-xs text-muted-foreground">{formatDate(ev.date)} • {daysUntil(ev.date)}d</div>
-                        </div>
+          ) : (
+            <div className="space-y-6">
+              {prediction && (
+                <div className="bg-white/70 rounded-xl p-4 border border-rose-100">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      {getPhaseIcon(prediction.phase)}
+                      <span className="font-semibold text-gray-800 capitalize">{prediction.phase} phase</span>
+                      <Badge className={`${getPhaseColor(prediction.phase)} text-xs`}>Day {prediction.cycleDay} / {prediction.avgCycleLength}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Avg cycle {prediction.avgCycleLength}d • Avg period {prediction.avgPeriodLength}d • Regularity {prediction.regularityScore}%
+                    </div>
+                  </div>
+                  <Progress value={(prediction.cycleDay / prediction.avgCycleLength) * 100} className="h-2" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                    <span>Start</span>
+                    <span>End</span>
+                  </div>
+                </div>
+              )}
+
+              {prediction && prediction.upcomingEvents.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {prediction.upcomingEvents.slice(0, 3).map((event, idx) => (
+                    <div key={idx} className="bg-white/70 rounded-xl p-4 border border-rose-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        {event.type === 'period' && <Droplets className="w-4 h-4 text-red-500" />}
+                        {event.type === 'fertile' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                        {event.type === 'ovulation' && <Heart className="w-4 h-4 text-pink-500" />}
+                        <span className="font-semibold text-gray-800">{event.event}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{formatDate(event.date)}</span>
+                        <Badge variant="outline">{daysUntil(event.date)} days</Badge>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="p-4 rounded-xl border bg-white/60 text-center w-full">No predictions yet — add a cycle to get started.</div>
-                )}
-              </div>
-            </div>
+                  ))}
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h5 className="text-sm font-semibold text-slate-800">Recent Cycles</h5>
-                <span className="text-xs text-muted-foreground">Showing up to 4</span>
-              </div>
-              <div className="-mx-4 md:mx-0">
-                <div className="flex gap-3 overflow-x-auto pb-2 px-4 md:px-0 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible">
-                  {cycles.length > 0 ? cycles.slice(0, 4).map((c) => (
-                    <div key={c.id} className="min-w-[200px] md:min-w-0 p-3 rounded-lg border bg-white/60 flex items-center justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" /> Recent Cycles
+                  </h4>
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowAddModal(true)}>
+                    <Plus className="w-4 h-4 mr-1" /> Log new cycle
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {cycles.slice(0, 4).map((cycle) => (
+                    <div key={cycle.id} className="bg-white/70 rounded-lg p-3 border border-rose-100 flex items-center justify-between">
                       <div>
-                        <div className="font-medium text-slate-800 text-sm">{new Date(c.cycle_start_date).toLocaleDateString()}</div>
-                        <div className="text-xs text-muted-foreground">{c.cycle_length}d cycle • {c.period_length}d period</div>
+                        <p className="font-medium text-gray-800">{new Date(cycle.cycle_start_date).toLocaleDateString()}</p>
+                        <p className="text-sm text-muted-foreground">{cycle.cycle_length} day cycle • {cycle.period_length} day period</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {c.mood && <Badge variant="outline" className="text-xs">{c.mood}</Badge>}
-                        {Array.isArray(c.symptoms) && c.symptoms.length > 0 && (
+                        {cycle.mood && <Badge variant="outline" className="text-xs">{cycle.mood}</Badge>}
+                        {Array.isArray(cycle.symptoms) && cycle.symptoms.length > 0 && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span>
-                                <Badge className="text-xs">{c.symptoms.length} symptoms</Badge>
+                                <Badge className="bg-rose-100 text-rose-700 border-rose-200 text-xs">{cycle.symptoms.length} symptoms</Badge>
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <div className="max-w-[220px] text-xs">{c.symptoms.join(', ')}</div>
+                              <div className="max-w-[220px] text-xs text-gray-700">{cycle.symptoms.join(', ')}</div>
                             </TooltipContent>
                           </Tooltip>
                         )}
                       </div>
                     </div>
-                  )) : (
-                    <div className="p-4 rounded-lg border bg-white/60 w-full">No cycles logged yet.</div>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+        </CardContent>
 
-        {/* Add / Log Cycle Modal (revamped) */}
         <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-slate-800">Log a new cycle</DialogTitle>
+              <DialogTitle className="text-rose-700">Add Cycle Data</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmitCycle} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="cycle_start_date">Period start date</Label>
-                <Input id="cycle_start_date" type="date" value={formData.cycle_start_date} onChange={(e) => setFormData({ ...formData, cycle_start_date: e.target.value })} required max={new Date().toISOString().split('T')[0]} />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="cycle_length">Cycle length (days)</Label>
-                    <Input id="cycle_length" type="number" min={20} max={60} value={formData.cycle_length} onChange={(e) => setFormData({ ...formData, cycle_length: parseInt(e.target.value) || 0 })} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="period_length">Period length (days)</Label>
-                    <Input id="period_length" type="number" min={1} max={14} value={formData.period_length} onChange={(e) => setFormData({ ...formData, period_length: parseInt(e.target.value) || 0 })} required />
-                  </div>
+            <form onSubmit={handleSubmitCycle} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cycle_start_date">Period Start Date</Label>
+                <Input 
+                  id="cycle_start_date" 
+                  type="date" 
+                  value={formData.cycle_start_date} 
+                  onChange={(e) => setFormData({ ...formData, cycle_start_date: e.target.value })} 
+                  required 
+                  max={new Date().toISOString().split('T')[0]} 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cycle_length">Cycle Length (days)</Label>
+                  <Input 
+                    id="cycle_length" 
+                    type="number" 
+                    min={20} 
+                    max={60} 
+                    value={formData.cycle_length} 
+                    onChange={(e) => setFormData({ ...formData, cycle_length: parseInt(e.target.value) || 0 })} 
+                    required 
+                  />
                 </div>
-
-                <Separator />
-
+                <div className="space-y-2">
+                  <Label htmlFor="period_length">Period Length (days)</Label>
+                  <Input 
+                    id="period_length" 
+                    type="number" 
+                    min={1} 
+                    max={14} 
+                    value={formData.period_length} 
+                    onChange={(e) => setFormData({ ...formData, period_length: parseInt(e.target.value) || 0 })} 
+                    required 
+                  />
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
                 <Label>Mood (optional)</Label>
-                <RadioGroup className="grid grid-cols-3 gap-2" value={formData.mood} onValueChange={(val) => setFormData({ ...formData, mood: val })}>
+                <RadioGroup 
+                  className="grid grid-cols-2 gap-2" 
+                  value={formData.mood} 
+                  onValueChange={(val) => setFormData({ ...formData, mood: val })}
+                >
                   {['Happy', 'Calm', 'Irritable', 'Tired', 'Crampy', 'Energetic'].map((m) => (
-                    <div key={m} className="flex items-center gap-2 rounded-lg border p-2">
+                    <div key={m} className="flex items-center gap-2 rounded-lg border border-rose-100 bg-white/60 p-2">
                       <RadioGroupItem id={`mood-${m}`} value={m} />
-                      <Label htmlFor={`mood-${m}`} className="text-sm">{m}</Label>
+                      <Label htmlFor={`mood-${m}`} className="text-sm text-gray-700">{m}</Label>
                     </div>
                   ))}
                 </RadioGroup>
               </div>
-
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label>Symptoms (optional)</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {COMMON_SYMPTOMS.map((s) => {
                     const active = formData.symptoms.includes(s);
                     return (
-                      <button key={s} type="button" onClick={() => toggleSymptom(s)} className={`text-xs rounded-md px-3 py-1 text-left transition ${active ? 'bg-rose-100 text-rose-700' : 'bg-white/60 text-slate-800 border'} `}>
+                      <button 
+                        key={s} 
+                        type="button" 
+                        onClick={() => toggleSymptom(s)} 
+                        className={`text-xs rounded-full border px-3 py-1 transition ${
+                          active 
+                            ? 'bg-rose-100 text-rose-700 border-rose-200' 
+                            : 'bg-white/60 text-gray-700 border-rose-100 hover:bg-rose-50'
+                        }`}
+                      >
                         {s}
                       </button>
                     );
                   })}
                 </div>
-
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea id="notes" rows={4} value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Any additional notes..." />
-                </div>
-
-                <div className="flex justify-end gap-2 mt-2 md:col-span-2">
-                  <Button type="button" variant="outline" onClick={() => setShowAddModal(false)} disabled={submitting}>Cancel</Button>
-                  <Button type="submit" variant="romantic" disabled={submitting}>{submitting ? 'Adding...' : 'Save cycle'}</Button>
-                </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea 
+                  id="notes" 
+                  placeholder="Any additional notes about this cycle..." 
+                  value={formData.notes} 
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+                  rows={3} 
+                />
+              </div>
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowAddModal(false)} disabled={submitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="romantic" disabled={submitting}>
+                  {submitting ? 'Adding...' : 'Add Cycle'}
+                </Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>

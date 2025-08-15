@@ -6,4 +6,5 @@ export { default as ParallaxContainer } from './ParallaxContainer';
 export { default as ParallaxBackground } from './ParallaxBackground';
 export { default as ParallaxHero } from './ParallaxHero';
 export { default as ParallaxSection } from './ParallaxSection';
+export { default as CycleTrackerCard } from './CycleTrackerCard';
 // ...add other exports as needed

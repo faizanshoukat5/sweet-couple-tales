@@ -26,7 +26,7 @@ import { useLocation } from 'react-router-dom';
 import { MoodTracker } from '@/components/MoodTracker';
 import { LoveNotesWidget } from '@/components/LoveNotesWidget';
 import { DateIdeasWidget } from '@/components/DateIdeasWidget';
-import { LoveLanguageQuiz, PartnerQuizResults } from '@/components';
+import { LoveLanguageQuiz, PartnerQuizResults, CycleTrackerCard } from '@/components';
 import { useMoods } from '@/hooks/useMoods';
 import { supabase } from '@/integrations/supabase/client';
 import SectionCard from '@/components/SectionCard';
@@ -487,6 +487,13 @@ const Dashboard = () => {
                 <MoodTracker userId={user.id} partnerId={partnerId} />
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Cycle Tracker */}
+        {user && (
+          <div className="mb-10">
+            <CycleTrackerCard userId={user.id} />
           </div>
         )}
 
