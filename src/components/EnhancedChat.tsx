@@ -1374,12 +1374,31 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             </div>
           </div>
           
-          {/* Send Button */}
+          {/* Mobile inline send (visible on small screens) */}
+          <button
+            type="button"
+            aria-label="Send message"
+            onClick={() => sendMessage()}
+            disabled={sending || !newMessage.trim()}
+            className={cn(
+              "inline-flex items-center justify-center p-2 rounded-full ml-2 shadow-md md:hidden",
+              sending ? "opacity-60" : "bg-gradient-to-r from-primary to-primary/90 hover:scale-105",
+              "text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            {sending ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </button>
+
+          {/* Send Button (desktop/tablet only) */}
           <Button
             type="submit"
             disabled={sending || !newMessage.trim()}
             className={cn(
-              "rounded-full p-3 shadow-md transition-all duration-200",
+              "rounded-full p-3 shadow-md transition-all duration-200 hidden md:inline-flex",
               "bg-gradient-to-r from-primary to-primary/90",
               "hover:shadow-lg hover:scale-105 active:scale-95",
               "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
