@@ -643,8 +643,13 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
 
     // On new messages, scroll if user is near bottom
     if (nearBottom()) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      setShowScrollToBottom(false);
+      // Use setTimeout to ensure DOM is fully rendered before scrolling
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          setShowScrollToBottom(false);
+        }
+      }, 100);
     } else {
       setShowScrollToBottom(true);
     }
@@ -659,9 +664,26 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       setShowScrollToBottom(distance > 160);
     };
 
+    const onWheel = (e: WheelEvent) => {
+      // Prevent wheel events from bubbling up to parent elements
+      e.stopPropagation();
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      // Allow natural touch scrolling but prevent parent scroll
+      e.stopPropagation();
+    };
+
     container.addEventListener('scroll', onScroll, { passive: true } as AddEventListenerOptions);
+    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+
     onScroll();
-    return () => container.removeEventListener('scroll', onScroll as EventListener);
+    return () => {
+      container.removeEventListener('scroll', onScroll as EventListener);
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('touchmove', onTouchMove);
+    };
   }, []);
 
   // Subscribe to typing indicators (single channel reused for send/receive)
@@ -713,10 +735,50 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     };
   }, [user?.id, partnerId, markMessagesAsRead]);
 
-  // Cleanup typing timeout on unmount
+  // Prevent page scroll when chat is open
   useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+
     return () => {
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, [isFullscreen]);
+
+  // Prevent scroll restoration on chat open
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Prevent scroll restoration
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+    };
+
+    const handleLoad = () => {
+      // Restore scroll restoration after load
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'auto';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('load', handleLoad);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('load', handleLoad);
     };
   }, []);
   // Enhanced Header
@@ -1296,7 +1358,11 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         style={{
           background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%)',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(0,0,0,0.2) transparent'
+          scrollbarColor: 'rgba(0,0,0,0.2) transparent',
+          // Ensure proper scrolling isolation
+          position: 'relative',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         {messages.length === 0 ? (
