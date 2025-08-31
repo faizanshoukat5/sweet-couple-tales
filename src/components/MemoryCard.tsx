@@ -90,9 +90,9 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
 
   if (viewMode === 'list') {
     return (
-  <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-3 bg-white/90 backdrop-blur rounded-lg border ring-1 ring-black/5 shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5">
+  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-2 bg-white/90 backdrop-blur rounded-lg border ring-1 ring-black/5 shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5">
         {/* Image */}
-  <div className="relative w-18 h-18 sm:w-22 sm:h-22 rounded-md overflow-hidden bg-gray-100 flex-shrink-0" style={{width:80, height:80}}>
+  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0" style={{width:48, height:48}}>
           {firstPhoto && !imageError ? (
             <>
               <img
@@ -119,7 +119,7 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
             </>
           ) : (
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <Heart className="w-6 h-6 text-gray-400" />
+              <Heart className="w-5 h-5 text-gray-400" />
             </div>
           )}
         </div>
@@ -128,8 +128,8 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{memory.title}</h3>
-              <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mt-1">{memory.content}</p>
+              <h3 className="font-semibold text-sm text-gray-900 truncate">{memory.title}</h3>
+              <p className="text-gray-600 text-xs line-clamp-2 mt-1">{memory.content}</p>
             </div>
             
             {/* Actions */}
@@ -195,7 +195,7 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
           </div>
 
           {/* Metadata */}
-  <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500">
+  <div className="flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-xs text-gray-500">
             <div className="flex items-center gap-1">
   <Calendar className="w-4 h-4" />
               <span>{format(parseISO(memory.memory_date), 'MMM d, yyyy')}</span>
@@ -231,7 +231,7 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
     );
   }
 
-  // Grid view
+  // Grid view (compact)
   return (
   <motion.div whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
   <Card className="group relative overflow-hidden rounded-lg border ring-1 ring-black/5 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-transform duration-200">
@@ -261,8 +261,8 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
             )}
           </>
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <Heart className="w-12 h-12 text-gray-400" />
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <Heart className="w-6 h-6 text-gray-400" />
           </div>
         )}
         
@@ -333,9 +333,9 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
         </div>
       </div>
       
-      <CardContent className="p-3 sm:p-3">
-        <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-1 sm:mb-1.5 line-clamp-1">{memory.title}</h3>
-        <p className="text-gray-600 text-[12px] sm:text-sm mb-2 sm:mb-2 line-clamp-2">{memory.content}</p>
+      <CardContent className="p-2 sm:p-2">
+        <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-1">{memory.title}</h3>
+        <p className="text-gray-600 text-[11px] mb-1.5 line-clamp-2">{memory.content}</p>
         
         <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
           <div className="flex items-center gap-1">
