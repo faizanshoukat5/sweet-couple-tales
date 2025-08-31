@@ -1,10 +1,12 @@
 import * as React from "react";
-import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
+import { useEffect, useState, useRef, useCallback, useLayoutEffect, useMemo } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobile } from "@/hooks/useMobile";
 import { Button } from "@/components/ui/button";
-import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft, Info, Bell, BellOff, Trash2 } from "lucide-react";
+import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft, Info, Bell, BellOff, Trash2, ChevronDown } from "lucide-react";
+import "./EnhancedChatAnimations.css";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
@@ -143,12 +145,15 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [lastNewMessageId, setLastNewMessageId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
   const notificationAudioRef = useRef<HTMLAudioElement>(null);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
   
   // Enhanced UI state
   const [showEmoji, setShowEmoji] = useState(false);
@@ -159,6 +164,24 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
+
+  // Emoji border density preference
+  type ThemePack = 'off' | 'subtle' | 'extra' | 'valentine' | 'minimal' | 'spring' | 'winter';
+  const [themePack, setThemePack] = useState<ThemePack>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(`chatTheme-${partnerId}`) : null;
+      if (saved === 'off' || saved === 'subtle' || saved === 'extra' || saved === 'valentine' || saved === 'minimal' || saved === 'spring' || saved === 'winter') return saved;
+    } catch (_e) { void 0; }
+    return 'subtle';
+  });
+  useEffect(() => {
+    try { localStorage.setItem(`chatTheme-${partnerId}`, themePack); } catch (_e) { void 0; }
+  }, [themePack, partnerId]);
+
+  // Derived shared items for Chat Info panel
+  const sharedImages = useMemo(() => messages.filter(m => m.attachment_type === 'image' && m.attachment_url), [messages]);
+  const sharedVoice = useMemo(() => messages.filter(m => m.attachment_type === 'voice' && m.attachment_url), [messages]);
+  const sharedFiles = useMemo(() => messages.filter(m => m.attachment_url && m.attachment_type && !['image','voice'].includes(m.attachment_type)), [messages]);
   
   // Advanced swipe gesture handling
   const swipeData = useRef<{
@@ -286,9 +309,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   // Send typing indicator
   const sendTypingIndicator = useCallback(async (typing: boolean) => {
     if (!user?.id || !isValidUUID(partnerId)) return;
-    
-    const channelName = `typing-${[user.id, partnerId].sort().join('-')}`;
-    const channel = supabase.channel(channelName);
+    const channel = typingChannelRef.current;
+    if (!channel) return; // wait until subscribed to avoid duplicate channels
     await channel.send({
       type: 'broadcast',
       event: 'typing',
@@ -296,8 +318,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         user_id: user.id,
         partner_id: partnerId,
         is_typing: typing,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     });
   }, [user?.id, partnerId]);
 
@@ -417,11 +439,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       ));
       
       toast({ title: "Voice message sent", description: "Voice message sent successfully!" });
-      
-      // Play notification sound for successful upload
-      if (notificationAudioRef.current) {
+      if (!isMuted && notificationAudioRef.current) {
         notificationAudioRef.current.currentTime = 0;
-        notificationAudioRef.current.play().catch(console.error);
+        notificationAudioRef.current.play().catch(() => {});
       }
     } catch (error) {
       console.error('Error handling voice message upload:', error);
@@ -451,9 +471,63 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     }, 2000);
   }, [isTyping, sendTypingIndicator]);
 
+  // Send message with optimistic UI
+  const sendMessage = async () => {
+    if (!newMessage.trim() || sending || !user?.id) return;
+    if (!isValidUUID(partnerId)) {
+      toast({ title: "Invalid partner", description: "Please select a valid chat partner.", variant: "destructive" });
+      chatHaptics.error();
+      return;
+    }
+
+    setSending(true);
+    setIsTyping(false);
+    sendTypingIndicator(false);
+    chatHaptics.messageSent();
+
+    const tempId = `temp-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    const optimisticMsg: Message & { reply_to?: string } = {
+      id: tempId,
+      sender_id: user.id,
+      receiver_id: partnerId,
+      content: newMessage,
+      timestamp,
+      is_read: false,
+      delivered_at: timestamp,
+      ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setNewMessage("");
+    setReplyToMessage(null);
+
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          sender_id: user.id,
+          receiver_id: partnerId,
+          content: optimisticMsg.content,
+          timestamp: optimisticMsg.timestamp,
+          delivered_at: timestamp,
+          ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setMessages(prev => prev.map(msg => (msg.id === tempId ? { ...(data as Message) } : msg)));
+    } catch (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      toast({ title: "Failed to send message", description: "Please try again.", variant: "destructive" });
+      chatHaptics.error();
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  };
+
   // Fetch messages (with polling fallback for real-time)
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
     const fetchMessages = async () => {
       if (!user?.id || !isValidUUID(partnerId)) return;
       
@@ -470,37 +544,23 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         setMessages(data as Message[]);
         
         // Count unread messages
-        const unread = data.filter((msg: any) => 
+  const unread = (data as Message[]).filter((msg: Message) => 
           msg.sender_id === partnerId && !msg.is_read
         ).length;
         setUnreadCount(unread);
-        
-        // Only mark as read if window is focused and tab is visible
-        const markIfVisible = () => {
-          if (document.visibilityState === 'visible' && document.hasFocus()) {
-            markMessagesAsRead();
-          }
-        };
-        markIfVisible();
-        // Listen for visibility/focus changes while this chat is mounted
-        const onVisibility = () => markIfVisible();
-        window.addEventListener('focus', onVisibility);
-        document.addEventListener('visibilitychange', onVisibility);
-        // Cleanup listeners on unmount
-        return () => {
-          window.removeEventListener('focus', onVisibility);
-          document.removeEventListener('visibilitychange', onVisibility);
-        };
       } else {
         console.error('Error fetching messages:', error);
       }
     };
+    // initial fetch
     fetchMessages();
-    intervalId = setInterval(fetchMessages, 2000); // Poll every 2 seconds
+    // reduce polling frequency when realtime is connected
+    const pollMs = connectionStatus === 'connected' ? 10000 : 2000;
+    const id = setInterval(fetchMessages, pollMs);
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      clearInterval(id);
     };
-  }, [user?.id, partnerId]);
+  }, [user?.id, partnerId, connectionStatus]);
 
   // Subscribe to new messages
   useEffect(() => {
@@ -519,39 +579,30 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id}))`
         },
         (payload) => {
-          console.log('New message received:', payload);
-          console.log('Current user ID:', user.id);
-          console.log('Partner ID:', partnerId);
           const msg = payload.new as Message;
-          console.log('Message sender:', msg.sender_id, 'Message receiver:', msg.receiver_id);
-          
           setMessages((prev) => {
             const existingIndex = prev.findIndex((m) => m.id === msg.id);
             if (existingIndex !== -1) {
-              // Replace the message if it exists (for updates)
               const updated = [...prev];
               updated[existingIndex] = msg;
-              console.log('Message updated in state');
               return updated;
             }
-            // Always return a new array reference
-            console.log('Adding new message to state');
             return [...prev, msg];
           });
-          
-          // If message is from partner, increment unread count
-        if (msg.sender_id === partnerId) {
-          setUnreadCount(prev => prev + 1);
-          // Play notification sound
-          if (notificationAudioRef.current) {
-            notificationAudioRef.current.currentTime = 0;
-            notificationAudioRef.current.play();
+          // Flag the newest partner message for highlight and show FAB if scrolled up
+          if (msg.sender_id === partnerId) {
+            setLastNewMessageId(msg.id);
           }
-          // Only mark as read if window is focused and tab is visible
-          if (document.visibilityState === 'visible' && document.hasFocus()) {
-            markMessagesAsRead();
+          if (msg.sender_id === partnerId) {
+            setUnreadCount(prev => prev + 1);
+            if (!isMuted && notificationAudioRef.current) {
+              notificationAudioRef.current.currentTime = 0;
+              notificationAudioRef.current.play().catch(() => {});
+            }
+            if (document.visibilityState === 'visible' && document.hasFocus()) {
+              markMessagesAsRead();
+            }
           }
-        }
         }
       )
       .on(
@@ -563,35 +614,72 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id}))`
         },
         (payload) => {
-          console.log('Message updated:', payload);
           const updatedMsg = payload.new as Message;
-          setMessages(prev => prev.map(msg => 
-            msg.id === updatedMsg.id ? updatedMsg : msg
-          ));
+          setMessages(prev => prev.map(msg => msg.id === updatedMsg.id ? updatedMsg : msg));
         }
       )
       .subscribe((status, err) => {
         console.log(`Message subscription status for channel ${channelName}:`, status, err);
+        if (status === 'SUBSCRIBED') setConnectionStatus('connected');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setConnectionStatus('disconnected');
+        else setConnectionStatus('connecting');
       });
 
     return () => {
-      console.log(`Removing message channel: ${channelName}`);
       supabase.removeChannel(messageChannel);
     };
-  }, [user?.id, partnerId]); // Removed markMessagesAsRead dependency
+  }, [user?.id, partnerId, isMuted, markMessagesAsRead]);
 
-  // Subscribe to typing indicators
+  // Auto-scroll behavior: keep view at bottom when near it; show FAB when scrolled up
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const nearBottom = () => {
+      const threshold = 120; // px
+      const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+      return distance < threshold;
+    };
+
+    // On new messages, scroll if user is near bottom
+    if (nearBottom()) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      setShowScrollToBottom(false);
+    } else {
+      setShowScrollToBottom(true);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const onScroll = () => {
+      const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollToBottom(distance > 160);
+    };
+
+    container.addEventListener('scroll', onScroll, { passive: true } as AddEventListenerOptions);
+    onScroll();
+    return () => container.removeEventListener('scroll', onScroll as EventListener);
+  }, []);
+
+  // Subscribe to typing indicators (single channel reused for send/receive)
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
 
     const channelName = `typing-${[user.id, partnerId].sort().join('-')}`;
-    const typingChannel = supabase
-      .channel(channelName)
+    const typingChannel = supabase.channel(channelName);
+    typingChannelRef.current = typingChannel;
+    let hideTimeout: NodeJS.Timeout | undefined;
+
+    typingChannel
       .on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id === partnerId) {
           setPartnerTyping(payload.payload.is_typing);
           if (payload.payload.is_typing) {
-            setTimeout(() => setPartnerTyping(false), 3000);
+            if (hideTimeout) clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => setPartnerTyping(false), 3000);
           }
         }
       })
@@ -600,259 +688,41 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       });
 
     return () => {
-      console.log('Removing typing channel');
+      if (hideTimeout) clearTimeout(hideTimeout);
+      typingChannelRef.current = null;
       supabase.removeChannel(typingChannel);
     };
   }, [user?.id, partnerId]);
 
-  // Subscribe to online presence (robust)
+  // Centralized visibility/focus listeners with cleanup
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
-
-    const presenceChannelName = `presence-${[user.id, partnerId].sort().join('-')}`;
-    const presenceChannel = supabase.channel(presenceChannelName, {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
-
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState();
-        console.log('Presence sync:', state);
-        // Both users must be present in the state for online to be true
-        const userIds = [user.id, partnerId];
-        const bothPresent = userIds.every(id => Object.keys(state).includes(id));
-        setIsOnline(bothPresent);
-      })
-      .on('presence', { event: 'join' }, ({ key }) => {
-        console.log('User joined:', key);
-        // Re-evaluate online status on join
-        const state = presenceChannel.presenceState();
-        const userIds = [user.id, partnerId];
-        const bothPresent = userIds.every(id => Object.keys(state).includes(id));
-        setIsOnline(bothPresent);
-      })
-      .on('presence', { event: 'leave' }, ({ key }) => {
-        console.log('User left:', key);
-        // Re-evaluate online status on leave
-        const state = presenceChannel.presenceState();
-        const userIds = [user.id, partnerId];
-        const bothPresent = userIds.every(id => Object.keys(state).includes(id));
-        setIsOnline(bothPresent);
-      })
-      .subscribe((status, err) => {
-        console.log('Presence subscription status:', status, err);
-      });
-
-    // Track own presence
-    presenceChannel.track({
-      user_id: user.id,
-      online_at: new Date().toISOString(),
-    });
-
+    const markIfVisible = () => {
+      if (document.visibilityState === 'visible' && document.hasFocus()) {
+        markMessagesAsRead();
+      }
+    };
+    markIfVisible();
+    const onFocus = () => markIfVisible();
+    const onVisibilityChange = () => markIfVisible();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
-      console.log('Removing presence channel');
-      supabase.removeChannel(presenceChannel);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [user?.id, partnerId]);
+  }, [user?.id, partnerId, markMessagesAsRead]);
 
-  // Robust scroll to bottom when chat opens or messages first load
-  useLayoutEffect(() => {
-    if (messages.length > 0 && messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      
-      // Force scroll to bottom synchronously after DOM updates
-      container.scrollTop = container.scrollHeight;
-      
-      // Additional scroll using requestAnimationFrame for browser paint cycle
-      requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop = container.scrollHeight;
-          
-          // Final backup with messagesEndRef
-          if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "instant" });
-          }
-        }
-      });
-    }
-  }, [partnerId, messages.length]); // Trigger when partner changes or message count changes
-
-  // Smart auto-scroll to bottom: only if user is near the bottom (for new messages)
+  // Cleanup typing timeout on unmount
   useEffect(() => {
-    if (!messagesContainerRef.current || !messagesEndRef.current || messages.length === 0) return;
-    
-    const container = messagesContainerRef.current;
-    const threshold = 120; // px from bottom to consider as "near bottom"
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
-    if (isNearBottom) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
-  // Send message with optimistic UI
-  const sendMessage = async () => {
-    if (!newMessage.trim() || sending || !user?.id) return;
-    if (!isValidUUID(partnerId)) {
-      toast({
-        title: "Invalid partner",
-        description: "Please select a valid chat partner.",
-        variant: "destructive",
-      });
-      chatHaptics.error();
-      return;
-    }
-    
-    setSending(true);
-    setIsTyping(false);
-    sendTypingIndicator(false);
-    
-    // Haptic feedback for message sent
-    chatHaptics.messageSent();
-    
-    const tempId = `temp-${Date.now()}`;
-    const timestamp = new Date().toISOString();
-    // Add replyToMessage reference in optimistic message (optional: add reply_to field in Message type)
-    const optimisticMsg: Message & { reply_to?: string } = {
-      id: tempId,
-      sender_id: user.id,
-      receiver_id: partnerId,
-      content: newMessage,
-      timestamp,
-      is_read: false,
-      delivered_at: timestamp,
-      ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
-    setMessages((prev) => [...prev, optimisticMsg]);
-    setNewMessage("");
-    setReplyToMessage(null);
-    
-    try {
-      const { data, error } = await supabase
-        .from("messages")
-        .insert({
-          sender_id: user.id,
-          receiver_id: partnerId,
-          content: optimisticMsg.content,
-          timestamp: optimisticMsg.timestamp,
-          delivered_at: timestamp,
-          ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      setMessages(prev => prev.map(msg => 
-        msg.id === tempId ? { ...data as Message } : msg
-      ));
-    } catch (error) {
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      toast({
-        title: "Failed to send message",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-      chatHaptics.error();
-    } finally {
-      setSending(false);
-      inputRef.current?.focus();
-    }
-  };
-
-  // Format message time
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  };
-
-  // Get message status icon
-  const getMessageStatusIcon = (msg: Message) => {
-    if (msg.sender_id !== user?.id) return null;
-
-    if (msg.id.startsWith('temp-')) {
-      return (
-        <span title="Sending..." className="inline-flex items-center gap-1">
-          <Circle className="w-3 h-3 text-muted-foreground/50" />
-          <span className="sr-only">Sending...</span>
-        </span>
-      );
-    }
-
-    if (msg.read_at) {
-      return (
-        <span title="Read" className="inline-flex items-center gap-1">
-          <CheckCheck className="w-3 h-3 text-primary drop-shadow-sm" />
-          <span className="text-xs text-primary font-semibold">Read</span>
-        </span>
-      );
-    } else if (msg.delivered_at) {
-      return (
-        <span title="Delivered" className="inline-flex items-center gap-1">
-          <CheckCheck className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
-          <span className="text-xs text-muted-foreground font-semibold">Delivered</span>
-        </span>
-      );
-    }
-
+  }, []);
+  // Enhanced Header
+  const Header = () => {
     return (
-      <span title="Sent" className="inline-flex items-center gap-1">
-        <Check className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
-        <span className="text-xs text-muted-foreground font-semibold">Sent</span>
-      </span>
-    );
-  };
-
-  if (!isValidUUID(partnerId)) {
-    return (
-      <div className={cn(
-        "flex flex-col bg-background border border-border",
-        isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg"
-      )}>
-        <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <Heart className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-lg text-foreground">Private Messages</h2>
-              <p className="text-sm text-muted-foreground">Chat with your partner</p>
-            </div>
-          </div>
-          <div className="text-2xl">💕</div>
-        </header>
-        
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-md">
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Heart className="w-12 h-12 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Start Your Conversation</h3>
-            <p className="text-muted-foreground">
-              Select a partner to begin sharing your thoughts and feelings in a private space.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn(
-      "flex flex-col bg-background border border-border overflow-hidden",
-      isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg",
-      isFullscreen && "fixed inset-0 z-50 rounded-none"
-    )}>
-      {/* Enhanced Header */}
-      <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
+  <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm border-bling">
         <div className="flex items-center gap-3 flex-1">
           {isMobile && (
             <Button
@@ -944,8 +814,12 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           </DropdownMenu>
         </div>
       </header>
+    );
+  };
 
-      {/* Clear Chat Confirm Dialog */}
+  // Clear Chat Confirm Dialog
+  const ClearChatDialog = () => {
+    return (
       <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
         <DialogContent>
           <DialogTitle>Clear conversation?</DialogTitle>
@@ -984,11 +858,439 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
           </div>
         </DialogContent>
       </Dialog>
+    );
+  };
+
+  // Format message time
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  // Get message status icon
+  const getMessageStatusIcon = (msg: Message) => {
+    if (msg.sender_id !== user?.id) return null;
+
+    if (msg.id.startsWith('temp-')) {
+      return (
+        <span title="Sending..." className="inline-flex items-center gap-1">
+          <Circle className="w-3 h-3 text-muted-foreground/50" />
+          <span className="sr-only">Sending...</span>
+        </span>
+      );
+    }
+
+    if (msg.read_at) {
+      return (
+        <span title="Read" className="inline-flex items-center gap-1">
+          <CheckCheck className="w-3 h-3 text-primary drop-shadow-sm" />
+          <span className="text-xs text-primary font-semibold">Read</span>
+        </span>
+      );
+    } else if (msg.delivered_at) {
+      return (
+        <span title="Delivered" className="inline-flex items-center gap-1">
+          <CheckCheck className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
+          <span className="text-xs text-muted-foreground font-semibold">Delivered</span>
+        </span>
+      );
+    }
+
+    return (
+      <span title="Sent" className="inline-flex items-center gap-1">
+        <Check className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
+        <span className="text-xs text-muted-foreground font-semibold">Sent</span>
+      </span>
+    );
+  };
+
+  if (!isValidUUID(partnerId)) {
+    return (
+      <div className={cn(
+        "flex flex-col bg-background border border-border",
+        isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg"
+      )}>
+        <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg text-foreground">Private Messages</h2>
+              <p className="text-sm text-muted-foreground">Chat with your partner</p>
+            </div>
+          </div>
+          <div className="text-2xl">💕</div>
+        </header>
+        
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Heart className="w-12 h-12 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Start Your Conversation</h3>
+            <p className="text-muted-foreground">
+              Select a partner to begin sharing your thoughts and feelings in a private space.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn(
+      "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
+      isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg",
+      isFullscreen && "fixed inset-0 z-50 rounded-none"
+    )}>
+      {/* Cute animated emoji border overlay (non-interactive) */}
+      {themePack !== 'off' && (
+        <div aria-hidden className={cn("emoji-border", themePack === 'subtle' ? "emoji-border--subtle" : "emoji-border--extra")}>          
+          {(() => {
+            const getEmojisForTheme = (theme: ThemePack) => {
+              switch (theme) {
+                case 'valentine':
+                  return {
+                    topBase: ['💖','❤️','💕','💗','💓','💞'],
+                    topExtra: ['💘','💝','💟','�','🌸','�'],
+                    bottomBase: ['💕','💘','❤️','💝','💓','💟'],
+                    bottomExtra: ['�💗','💞','�','�','🌺','💮'],
+                    leftBase: ['💖','💕','❤️','💗','💓'],
+                    leftExtra: ['💘','💝','🌹','💐'],
+                    rightBase: ['�💞','💟','💝','💗','💓'],
+                    rightExtra: ['💖','❤️','🌸','💐']
+                  };
+                case 'minimal':
+                  return {
+                    topBase: ['●','○','■','□','▲','△'],
+                    topExtra: ['◆','◇','★','☆','◆','◇'],
+                    bottomBase: ['○','●','□','■','△','▲'],
+                    bottomExtra: ['◇','◆','☆','★','◇','◆'],
+                    leftBase: ['●','○','■','□','▲'],
+                    leftExtra: ['◆','◇','★','☆'],
+                    rightBase: ['△','▲','□','■','○'],
+                    rightExtra: ['☆','★','◇','◆']
+                  };
+                case 'spring':
+                  return {
+                    topBase: ['🌸','🌺','🌷','🌹','🌼','🌻'],
+                    topExtra: ['🌿','🍃','🌱','🌳','🌸','🌺'],
+                    bottomBase: ['🌷','🌹','🌼','🌻','🌸','🌺'],
+                    bottomExtra: ['🌿','🍃','🌱','🌳','🌷','🌹'],
+                    leftBase: ['🌸','🌺','🌷','🌹','🌼'],
+                    leftExtra: ['🌿','🍃','🌱','🌳'],
+                    rightBase: ['🌻','🌼','🌹','🌷','🌺'],
+                    rightExtra: ['🌱','🌳','🍃','🌿']
+                  };
+                case 'winter':
+                  return {
+                    topBase: ['❄️','🌨️','⛄','🧊','❄️','🌨️'],
+                    topExtra: ['☃️','🧣','🎄','❄️','🌨️','⛄'],
+                    bottomBase: ['🧊','❄️','🌨️','⛄','🧊','❄️'],
+                    bottomExtra: ['☃️','🧣','🎄','❄️','🌨️','⛄'],
+                    leftBase: ['❄️','🌨️','⛄','🧊','❄️'],
+                    leftExtra: ['☃️','🧣','🎄'],
+                    rightBase: ['🌨️','⛄','🧊','❄️','🌨️'],
+                    rightExtra: ['🎄','🧣','☃️']
+                  };
+                case 'extra':
+                  return {
+                    topBase: ['💖','🎀','🌸','💗','🎀','💞'],
+                    topExtra: ['🌺','💐','💓','💟','🌷','🌸','💘'],
+                    bottomBase: ['🌸','💘','🎀','💝','🌸','💓'],
+                    bottomExtra: ['💮','💖','🎀','💗','🌺','💞'],
+                    leftBase: ['💖','🌸','🎀','💗','🌸'],
+                    leftExtra: ['💐','💝','🌷'],
+                    rightBase: ['💘','🎀','💝','🌸','💞'],
+                    rightExtra: ['💮','💗','🌸']
+                  };
+                default: // subtle
+                  return {
+                    topBase: ['💖','🎀','🌸','💗','🎀','💞'],
+                    topExtra: [],
+                    bottomBase: ['🌸','💘','🎀','💝','🌸','💓'],
+                    bottomExtra: [],
+                    leftBase: ['💖','🌸','🎀','💗','🌸'],
+                    leftExtra: [],
+                    rightBase: ['�','🎀','💝','🌸','💞'],
+                    rightExtra: []
+                  };
+              }
+            };
+
+            const emojis = getEmojisForTheme(themePack);
+            const animCycle = ['bob-y','bob-x','spin','bob-y','bob-x',''];
+            const cls = (i: number) => `emoji ${animCycle[i % animCycle.length]}`.trim();
+
+            const top = [...emojis.topBase, ...emojis.topExtra];
+            const bottom = [...emojis.bottomBase, ...emojis.bottomExtra];
+            const left = [...emojis.leftBase, ...emojis.leftExtra];
+            const right = [...emojis.rightBase, ...emojis.rightExtra];
+
+            return (
+              <>
+                <div className="emoji-row top">
+                  {top.map((e, i) => (
+                    <span key={`t-${i}`} className={cls(i)}>{e}</span>
+                  ))}
+                </div>
+                <div className="emoji-row bottom">
+                  {bottom.map((e, i) => (
+                    <span key={`b-${i}`} className={cls(i)}>{e}</span>
+                  ))}
+                </div>
+                <div className="emoji-col left">
+                  {left.map((e, i) => (
+                    <span key={`l-${i}`} className={cls(i)}>{e}</span>
+                  ))}
+                </div>
+                <div className="emoji-col right">
+                  {right.map((e, i) => (
+                    <span key={`r-${i}`} className={cls(i)}>{e}</span>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+      <Header />
+
+      {/* Clear Chat Confirm Dialog */}
+      <ClearChatDialog />
+      {/* Chat Info Slide-in Panel */}
+      <div className={cn("fixed inset-0 z-[60]", showChatInfo ? "pointer-events-auto" : "pointer-events-none")}
+        aria-hidden={!showChatInfo}
+      >
+        {/* Overlay */}
+        <div
+          className={cn("absolute inset-0 bg-black/30 transition-opacity", showChatInfo ? "opacity-100" : "opacity-0")}
+          onClick={() => setShowChatInfo(false)}
+        />
+        {/* Panel */}
+    <aside
+          className={cn(
+      "absolute right-0 top-0 h-full w-[88%] sm:w-[380px] bg-background border-l shadow-xl panel-gradient-border",
+            "transition-transform duration-300",
+            showChatInfo ? "translate-x-0" : "translate-x-full"
+          )}
+          role="dialog"
+          aria-label="Chat info"
+        >
+          <div className="flex items-center justify-between p-4 border-b">
+            <div>
+              <h3 className="font-semibold">Chat info</h3>
+              <p className="text-xs text-muted-foreground">Overview and shared content</p>
+            </div>
+            <Button variant="ghost" size="sm" className="p-2 h-8 w-8" onClick={() => setShowChatInfo(false)} aria-label="Close chat info">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </Button>
+          </div>
+          <div className="p-4 space-y-6 overflow-y-auto h-[calc(100%-56px)]">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border p-3 text-center">
+                <div className="text-xl font-bold">{messages.length}</div>
+                <div className="text-xs text-muted-foreground">Messages</div>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <div className="text-xl font-bold">{sharedImages.length}</div>
+                <div className="text-xs text-muted-foreground">Photos</div>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <div className="text-xl font-bold">{unreadCount}</div>
+                <div className="text-xs text-muted-foreground">Unread</div>
+              </div>
+            </div>
+
+            {/* Notifications toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="font-medium">Notifications</div>
+                <div className="text-xs text-muted-foreground">{isMuted ? 'Muted' : 'Active'}</div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setIsMuted(m => !m)}>
+                {isMuted ? 'Unmute' : 'Mute'}
+              </Button>
+            </div>
+
+            {/* Emoji border theme */}
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="font-medium">Emoji border theme</div>
+                  <div className="text-xs text-muted-foreground">Choose a decorative theme for the chat border</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'off' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('off')}
+                >
+                  Off
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'subtle' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('subtle')}
+                >
+                  Subtle
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'extra' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('extra')}
+                >
+                  Extra
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'valentine' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('valentine')}
+                >
+                  Valentine 💖
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'minimal' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('minimal')}
+                >
+                  Minimal ●
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'spring' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('spring')}
+                >
+                  Spring 🌸
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'winter' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('winter')}
+                >
+                  Winter ❄️
+                </button>
+              </div>
+            </div>
+
+            {/* Shared Photos */}
+            {sharedImages.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold flex items-center gap-2"><Image className="w-4 h-4"/> Photos</div>
+                  <span className="text-xs text-muted-foreground">{sharedImages.length}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {sharedImages.slice().reverse().slice(0, 9).map(img => (
+                    <a key={img.id} href={img.attachment_url || '#'} target="_blank" rel="noreferrer" className="block aspect-square overflow-hidden rounded-md border">
+                      <img src={img.attachment_url || ''} alt={img.attachment_filename || 'image'} className="w-full h-full object-cover"/>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Voice Notes */}
+            {sharedVoice.length > 0 && (
+              <div>
+                <div className="font-semibold flex items-center gap-2 mb-2"><Mic className="w-4 h-4"/> Voice notes</div>
+                <div className="space-y-2">
+                  {sharedVoice.slice().reverse().slice(0, 5).map(v => (
+                    <div key={v.id} className="flex items-center justify-between rounded-md border p-2">
+                      <div className="text-sm truncate">{v.content || 'Voice message'}</div>
+                      <a className="text-xs inline-flex items-center gap-1 hover:underline" href={v.attachment_url || '#'} target="_blank" rel="noreferrer">
+                        <Download className="w-3 h-3"/> Download
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Files */}
+            {sharedFiles.length > 0 && (
+              <div>
+                <div className="font-semibold flex items-center gap-2 mb-2"><FileText className="w-4 h-4"/> Files</div>
+                <div className="space-y-2">
+                  {sharedFiles.slice().reverse().slice(0, 7).map(f => (
+                    <div key={f.id} className="flex items-center justify-between rounded-md border p-2">
+                      <div className="text-sm truncate flex-1 mr-2">{f.attachment_filename || f.attachment_name || 'File'}</div>
+                      <a className="text-xs inline-flex items-center gap-1 hover:underline" href={f.attachment_url || '#'} target="_blank" rel="noreferrer">
+                        <Download className="w-3 h-3"/> Download
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Export chat */}
+            <div className="pt-2">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  try {
+                    const lines = messages.map(m => {
+                      const who = m.sender_id === user?.id ? 'You' : 'Partner';
+                      return `[${new Date(m.timestamp).toLocaleString()}] ${who}: ${m.content}`;
+                    });
+                    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `chat-${new Date().toISOString().slice(0,10)}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    toast({ title: 'Export failed', description: 'Could not export chat', variant: 'destructive' });
+                  }
+                }}
+              >
+                Export chat (.txt)
+              </Button>
+            </div>
+          </div>
+        </aside>
+      </div>
       {/* Messages Container */}
-      <div 
+    <div 
         ref={messagesContainerRef} 
         className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden",
+      "flex-1 overflow-y-auto overflow-x-hidden border-bling-top",
           isMobile ? "px-3 py-2" : "px-4 py-4"
         )}
         style={{
@@ -1008,8 +1310,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             </p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {messages.map((msg, index) => {
+          <div className="space-y-1 relative">
+            {(() => {
+              const firstUnreadIndex = messages.findIndex(m => m.sender_id === partnerId && !m.is_read);
+              return messages.map((msg, index) => {
               const isOwn = msg.sender_id === user?.id;
               const prevMsg = messages[index - 1];
               const nextMsg = messages[index + 1];
@@ -1032,11 +1336,22 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   {/* Timestamp Divider */}
                   {showTimestamp && (
                     <div className="flex items-center justify-center my-6">
-                      <div className="flex-1 h-px bg-border"></div>
+                      <div className="flex-1 divider-gradient"></div>
                       <div className="px-4 py-1 bg-muted/50 rounded-full text-xs text-muted-foreground font-medium">
                         {formatMessageTime(msg.timestamp)}
                       </div>
-                      <div className="flex-1 h-px bg-border"></div>
+                      <div className="flex-1 divider-gradient"></div>
+                    </div>
+                  )}
+
+                  {/* Unread Divider */}
+                  {unreadCount > 0 && index === firstUnreadIndex && (
+                    <div className="flex items-center justify-center my-4">
+                      <div className="flex-1 divider-gradient" />
+                      <div className="mx-3 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                        Unread messages
+                      </div>
+                      <div className="flex-1 divider-gradient" />
                     </div>
                   )}
                   
@@ -1061,7 +1376,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                     {/* Message Content */}
                     <div
                       className={cn(
-                        "relative max-w-[85%] transition-all duration-200 ease-out cursor-pointer",
+                        "relative max-w-[85%] transition-all duration-200 ease-out cursor-pointer animate-message-in",
                         isMobile ? "max-w-[75%]" : "max-w-[70%]",
                         msg.id.startsWith('temp-') && "scale-95"
                       )}
@@ -1071,6 +1386,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                       onClick={() => {
                         if (!isMobile) setReplyToMessage(msg);
                       }}
+                      data-new={(msg.id === lastNewMessageId && msg.sender_id === partnerId) ? 'true' : 'false'}
                     >
                       {/* Reply Preview */}
                       {repliedMsg && (
@@ -1114,9 +1430,11 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                                 isFirstInGroup ? "rounded-tl-2xl" : "rounded-tl-md"
                               ),
                           "hover:shadow-lg transition-shadow",
-                          msg.id.startsWith('temp-') && "animate-pulse"
+                          msg.id.startsWith('temp-') && "animate-pulse",
+                          (msg.id === lastNewMessageId && msg.sender_id === partnerId) && "flash-recent"
                         )}
                         data-own={isOwn.toString()}
+                        title={new Date(msg.timestamp).toLocaleString()}
                       >
                         {/* Loading State for Temp Messages */}
                         {msg.id.startsWith('temp-') && (
@@ -1180,7 +1498,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   </div>
                 </div>
               );
-            })}
+            });
+            })()}
             
             {/* Typing Indicator */}
             {partnerTyping && (
@@ -1200,6 +1519,32 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                 </div>
               </div>
             )}
+            {/* Scroll to bottom FAB */}
+            {showScrollToBottom && (
+              <div className="sticky bottom-4 flex justify-end pointer-events-none">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="pointer-events-auto shadow-md rounded-full px-3 py-2 bg-background/90 border backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:scale-105 transition-transform"
+                  onClick={() => {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    if (document.visibilityState === 'visible' && document.hasFocus()) {
+                      markMessagesAsRead();
+                    }
+                  }}
+                  title="Jump to latest"
+                >
+                  <div className="relative flex items-center gap-2">
+                    <ChevronDown className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                </Button>
+              </div>
+            )}
           </div>
         )}
         
@@ -1208,7 +1553,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       {/* Enhanced Input Section */}
       <footer className={cn(
         "border-t bg-card/80 backdrop-blur-lg",
-        isMobile ? "p-3" : "p-4"
+        isMobile ? "p-3" : "p-4",
+        "pb-[env(safe-area-inset-bottom)]"
       )}>
         {/* Reply Preview */}
         {replyToMessage && (

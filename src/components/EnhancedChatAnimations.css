@@ -1,3 +1,50 @@
+/* Subtle entrance animation for messages */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-message-in {
+  animation: message-in 180ms ease-out both;
+}
+
+/* Flash highlight for the most recent incoming message */
+@keyframes flash-recent {
+  0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.0); }
+  30% { box-shadow: 0 0 0 6px rgba(99,102,241,0.15); }
+  60% { box-shadow: 0 0 0 12px rgba(99,102,241,0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.0); }
+}
+
+.flash-recent {
+  animation: flash-recent 900ms ease-out 1;
+}
+
+/* Optional shimmer reused by temp messages */
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer-move 1.2s linear infinite;
+}
+
+@keyframes shimmer-move {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Mobile swipe feedback classes referenced in JS */
+.swipe-feedback {
+  filter: brightness(1.05) saturate(1.05);
+}
+.swipe-success {
+  outline: 2px solid rgba(99,102,241,0.35);
+}
 /* Enhanced Chat Animations - Industry Standard */
 
 /* Message slide-in animation */
@@ -265,6 +312,101 @@
 /* Maintain text contrast during swipe feedback */
 .swipe-feedback[data-own="true"] {
   background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.98) 100%) !important;
+}
+/* Decorative gradient borders */
+.gradient-border { position: relative; }
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px; /* border thickness */
+  background: linear-gradient(135deg,
+    rgba(99,102,241,0.35),
+    rgba(236,72,153,0.25),
+    rgba(59,130,246,0.25)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+.gradient-border--subtle::before { opacity: .6; }
+
+/* Header/Footer gradient stripes */
+.border-bling { position: relative; }
+.border-bling::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, rgba(0,0,0,0), rgba(99,102,241,0.45), rgba(236,72,153,0.35), rgba(0,0,0,0));
+}
+.border-bling-top { position: relative; }
+.border-bling-top::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, rgba(0,0,0,0), rgba(99,102,241,0.45), rgba(236,72,153,0.35), rgba(0,0,0,0));
+}
+
+/* Divider gradient line */
+.divider-gradient {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0,0,0,0), rgba(99,102,241,0.35), rgba(236,72,153,0.25), rgba(0,0,0,0));
+}
+
+/* Message bubble subtle border */
+.message-bubble { position: relative; }
+.message-bubble::after {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  transition: box-shadow 160ms ease;
+}
+.message-bubble[data-own="false"]::after {
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+.message-bubble:hover::after {
+  box-shadow: inset 0 0 0 1.5px rgba(99,102,241,0.35);
+}
+
+/* Chat Info panel left border gradient */
+.panel-gradient-border { position: relative; }
+.panel-gradient-border::before {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 0; width: 2px;
+  background: linear-gradient(180deg, rgba(99,102,241,0.5), rgba(236,72,153,0.45));
+}
+
+/* Animated emoji border overlay */
+.emoji-border { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.emoji-border--subtle { opacity: .35; }
+.emoji-row, .emoji-col { position: absolute; display: flex; gap: 8px; }
+.emoji-row { left: 8px; right: 8px; height: 22px; align-items: center; justify-content: space-between; }
+.emoji-row.top { top: 4px; }
+.emoji-row.bottom { bottom: 4px; }
+.emoji-col { top: 32px; bottom: 32px; width: 22px; flex-direction: column; align-items: center; justify-content: space-between; }
+.emoji-col.left { left: 4px; }
+.emoji-col.right { right: 4px; }
+
+.emoji { font-size: var(--emoji-size, 14px); line-height: 1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.1)); }
+.emoji.bob-y { animation: emoji-bob-y 3.6s ease-in-out infinite; }
+.emoji.bob-x { animation: emoji-bob-x 3.8s ease-in-out infinite; }
+.emoji.spin { animation: emoji-spin 8s linear infinite; }
+
+@keyframes emoji-bob-y { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes emoji-bob-x { 0%,100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+@keyframes emoji-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Staggered delays for variety */
+.emoji-row .emoji:nth-child(3n) { animation-delay: .15s; }
+.emoji-row .emoji:nth-child(4n) { animation-delay: .3s; }
+.emoji-row .emoji:nth-child(5n) { animation-delay: .45s; }
+.emoji-col .emoji:nth-child(3n) { animation-delay: .2s; }
+.emoji-col .emoji:nth-child(4n) { animation-delay: .35s; }
+.emoji-col .emoji:nth-child(5n) { animation-delay: .5s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .emoji, .emoji.bob-y, .emoji.bob-x, .emoji.spin { animation: none !important; }
 }
 
 .swipe-feedback[data-own="true"] * {

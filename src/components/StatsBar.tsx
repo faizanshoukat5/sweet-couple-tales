@@ -1,28 +1,78 @@
-import { Heart } from 'lucide-react';
-import { ReactNode } from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 
-interface StatCardProps { label: string; value: ReactNode; meta?: ReactNode; gradient?: string; icon?: ReactNode; className?: string; }
+type StatsBarProps = {
+	className?: string;
+	children: React.ReactNode;
+};
 
-const base = 'relative overflow-hidden rounded-2xl p-5 text-white shadow-lg flex flex-col justify-between';
+/**
+ * StatsBar
+ * Simple responsive container for stat cards.
+ */
+const StatsBar: React.FC<StatsBarProps> = ({ className, children }) => {
+	return (
+		<div
+			className={cn(
+				'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4',
+				className
+			)}
+		>
+			{children}
+		</div>
+	);
+};
 
-export const StatCard = ({ label, value, meta, gradient, icon, className }: StatCardProps) => (
-  <div className={cn(base, gradient || 'bg-gradient-to-br from-rose-500 to-pink-400', className)}>
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <div className="font-semibold text-sm opacity-90 mb-1">{label}</div>
-        <div className="text-3xl font-extrabold tracking-tight leading-none">{value}</div>
-      </div>
-      {icon && <div className="text-white/70">{icon}</div>}
-    </div>
-    {meta && <div className="mt-2 text-xs opacity-80 flex items-center gap-1">{meta}</div>}
-    <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
-  </div>
-);
+type StatCardProps = {
+	label: string;
+	value: React.ReactNode;
+	meta?: React.ReactNode;
+	gradient?: string; // tailwind bg classes for accent
+	className?: string;
+};
 
-interface StatsBarProps { children: ReactNode; className?: string; }
-export const StatsBar = ({ children, className }: StatsBarProps) => (
-  <div className={cn('grid gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5', className)}>{children}</div>
-);
+/**
+ * StatCard
+ * Compact summary card with optional gradient accent and meta content.
+ */
+export const StatCard: React.FC<StatCardProps> = ({
+	label,
+	value,
+	meta,
+	gradient,
+	className,
+}) => {
+	return (
+		<Card
+			className={cn(
+				'border-0 shadow-sm hover:shadow-md transition-shadow duration-200',
+				'bg-white/90 backdrop-blur',
+				className
+			)}
+		>
+			<CardContent className="p-4">
+				<div className="flex items-center justify-between">
+					<div>
+						<div className="text-xs font-medium text-muted-foreground">{label}</div>
+						<div className="mt-1 text-2xl font-bold tracking-tight">{value}</div>
+						{meta && (
+							<div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+								{meta}
+							</div>
+						)}
+					</div>
+					<div
+						className={cn(
+							'h-10 w-10 rounded-full opacity-90 shadow-inner',
+							gradient ?? 'bg-gradient-to-br from-rose-200 to-pink-200'
+						)}
+					/>
+				</div>
+			</CardContent>
+		</Card>
+	);
+};
 
 export default StatsBar;
+
