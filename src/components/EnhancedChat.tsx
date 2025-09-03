@@ -166,11 +166,11 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const [clearing, setClearing] = useState(false);
 
   // Emoji border density preference
-  type ThemePack = 'off' | 'subtle' | 'extra' | 'valentine' | 'minimal' | 'spring' | 'winter';
+  type ThemePack = 'off' | 'subtle' | 'extra' | 'valentine' | 'minimal' | 'spring' | 'winter' | 'autumn';
   const [themePack, setThemePack] = useState<ThemePack>(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem(`chatTheme-${partnerId}`) : null;
-      if (saved === 'off' || saved === 'subtle' || saved === 'extra' || saved === 'valentine' || saved === 'minimal' || saved === 'spring' || saved === 'winter') return saved;
+      if (saved === 'off' || saved === 'subtle' || saved === 'extra' || saved === 'valentine' || saved === 'minimal' || saved === 'spring' || saved === 'winter' || saved === 'autumn') return saved;
     } catch (_e) { void 0; }
     return 'subtle';
   });
@@ -1063,6 +1063,17 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                     rightBase: ['🌨️','⛄','🧊','❄️','🌨️'],
                     rightExtra: ['🎄','🧣','☃️']
                   };
+                case 'autumn':
+                  return {
+                    topBase: ['🍂','🍁','🌰','🍄','🍂','🍁'],
+                    topExtra: ['🎃','🌾','🍯','🍂','🍁','🌰'],
+                    bottomBase: ['🌰','🍂','🍁','🍄','🌰','🍂'],
+                    bottomExtra: ['🎃','🌾','🍯','🍂','🍁','🌰'],
+                    leftBase: ['🍂','🍁','🌰','🍄','🍂'],
+                    leftExtra: ['🎃','🌾','🍯'],
+                    rightBase: ['🍁','🌰','🍄','🍂','🍁'],
+                    rightExtra: ['🍯','🌾','🎃']
+                  };
                 case 'extra':
                   return {
                     topBase: ['💖','🎀','🌸','💗','🎀','💞'],
@@ -1262,6 +1273,16 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   onClick={() => setThemePack('winter')}
                 >
                   Winter ❄️
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'px-3 py-2 text-xs rounded-md border transition-colors',
+                    themePack === 'autumn' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted border-border'
+                  )}
+                  onClick={() => setThemePack('autumn')}
+                >
+                  Autumn 🍂
                 </button>
               </div>
             </div>
