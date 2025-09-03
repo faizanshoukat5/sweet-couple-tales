@@ -39,27 +39,31 @@ const CallToAction = () => {
                 Your love story deserves to be remembered forever.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button 
                   variant="romantic" 
                   size="lg" 
-                  className="text-lg px-10 py-6 font-serif"
+                  className="text-lg px-10 py-6 font-serif hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group"
                   onClick={handleCreate}
                 >
-                  {user ? "Create Your First Memory" : "Create Account - It's Free"}
+                  <span className="group-hover:animate-pulse">
+                    {user ? "Create Your First Memory" : "Create Account - It's Free"}
+                  </span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg" 
-                  className="text-lg px-10 py-6 border-primary text-primary hover:bg-primary hover:text-white"
+                  className="text-lg px-10 py-6 border-primary text-primary hover:bg-primary hover:text-white hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group"
                   onClick={handleViewMemories}
                 >
-                  {user ? "View My Dashboard" : "Sign In"}
+                  <span className="group-hover:animate-pulse">
+                    {user ? "View My Dashboard" : "Sign In"}
+                  </span>
                 </Button>
               </div>
               
-              <p className="text-sm text-muted-foreground mt-6">
-                No credit card required • Free forever • Privacy guaranteed
+              <p className="text-sm text-muted-foreground mt-6 opacity-80">
+                ✨ No credit card required • 🚀 Free forever • 🔒 Privacy guaranteed ✨
               </p>
             </div>
           </CardContent>

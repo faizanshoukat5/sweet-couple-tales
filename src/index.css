@@ -134,34 +134,95 @@ All colors MUST be HSL.
   /* Masonry layout using CSS columns (fallback simple) */
   .masonry { column-gap: 1.5rem; display:block; }
   .masonry-item { break-inside: avoid; margin-bottom: 1.5rem; }
+  
+  /* Enhanced animations */
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.6s ease-out;
   }
   
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: scale(0.9);
+      transform: translateY(20px);
     }
     to {
       opacity: 1;
-      transform: scale(1);
+      transform: translateY(0);
     }
   }
   
   .animate-fade-out {
-    animation: fadeOut 0.2s ease-in;
+    animation: fadeOut 0.4s ease-in;
   }
   
   @keyframes fadeOut {
     from {
       opacity: 1;
-      transform: scale(1);
+      transform: translateY(0);
     }
     to {
       opacity: 0;
-      transform: scale(0.9);
+      transform: translateY(-10px);
     }
+  }
+  
+  /* Romantic glow animation */
+  .animate-romantic-glow {
+    animation: romanticGlow 3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes romanticGlow {
+    from {
+      opacity: 0.5;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 0.8;
+      transform: scale(1.2);
+    }
+  }
+  
+  /* Heart float animation */
+  .animate-heart-float {
+    animation: heartFloat 4s ease-in-out infinite;
+  }
+  
+  @keyframes heartFloat {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    25% {
+      transform: translateY(-10px) rotate(2deg);
+    }
+    50% {
+      transform: translateY(-5px) rotate(-1deg);
+    }
+    75% {
+      transform: translateY(-15px) rotate(1deg);
+    }
+  }
+  
+  /* Scroll reveal animations */
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .scroll-reveal-right {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .scroll-reveal-right.revealed {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
