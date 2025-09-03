@@ -353,7 +353,7 @@ const Dashboard = () => {
           const hour = new Date().getHours();
           const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
           const milestones = [1, 5, 10, 25, 50, 100];
-          const reached = milestones.findLast(m => memories.length >= m);
+          const reached = milestones.filter(m => memories.length >= m).pop();
           return (
             <div className="mb-10 rounded-[28px] p-[1px] bg-gradient-to-r from-rose-200/70 to-pink-200/70">
               <section className="relative overflow-hidden rounded-[26px] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-pink-50 shadow-xl transition-shadow hover:shadow-2xl animate-in fade-in-0 slide-in-from-bottom-2">
@@ -496,7 +496,7 @@ const Dashboard = () => {
         {/* Cycle Tracker */}
         {user && (
           <div className="mb-10">
-            <CycleTrackerCard userId={user.id} />
+            <CycleTrackerCard />
           </div>
         )}
 
