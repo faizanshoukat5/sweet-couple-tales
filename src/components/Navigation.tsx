@@ -66,7 +66,7 @@ const Navigation = () => {
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img 
               src={heartFlowers} 
-              alt="Sweet Couple Tales" 
+              alt="Heart logo" 
               className="w-8 h-8 animate-heart-float"
             />
             <span className="font-serif text-xl font-bold text-foreground">
