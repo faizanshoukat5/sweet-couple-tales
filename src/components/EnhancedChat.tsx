@@ -57,12 +57,15 @@ const useResolvedAttachmentUrl = (raw?: string) => {
   return url;
 };
 
+const EnhancedChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
+
+
 const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
   const resolvedUrl = useResolvedAttachmentUrl(msg.attachment_url);
   const raw = msg.attachment_url;
   if (!raw) return null;
   const isPath = !raw.startsWith('http');
-  const urlToUse = isPath ? resolvedUrl ?? '' : raw;
+  const urlToUse = isPath ? (resolvedUrl ?? '') : raw;
 
   if (isPath && !resolvedUrl) {
     return <div className="mb-2 text-xs text-muted-foreground">Loading attachment…</div>;
@@ -74,94 +77,77 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         <Dialog>
           <DialogTrigger asChild>
             <div>
-              <AttachmentDisplay
-                url={urlToUse}
-                filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
-                fileType="image"
-                fileSize={msg.attachment_size || 0}
-                className="max-w-xs cursor-zoom-in"
-              />
+              <AttachmentDisplay url={urlToUse} filename={msg.attachment_filename || msg.attachment_name || 'image'} fileType={msg.attachment_type || 'image'} fileSize={msg.attachment_size || 0} />
             </div>
           </DialogTrigger>
-          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-3xl flex items-center justify-center">
-            <DialogTitle asChild>
-              <VisuallyHidden>
-                {msg.attachment_filename || msg.attachment_name || 'Image attachment'}
-              </VisuallyHidden>
-            </DialogTitle>
-            <DialogDescription asChild>
-              <VisuallyHidden>
-                {`Full-size preview of image attachment: ${msg.attachment_filename || msg.attachment_name || 'attachment'}`}
-              </VisuallyHidden>
-            </DialogDescription>
-            <img
-              src={urlToUse}
-              alt={msg.attachment_filename || msg.attachment_name || 'attachment'}
-              className="max-h-[80vh] max-w-full rounded-lg shadow-lg"
-              style={{ margin: '0 auto', display: 'block' }}
-            />
+          <DialogContent className="max-w-3xl">
+            <DialogTitle className="sr-only">Image preview</DialogTitle>
+            <DialogDescription className="sr-only">Preview of attached image</DialogDescription>
+            <img src={urlToUse} alt={msg.attachment_filename || 'image'} className="w-full h-auto" />
           </DialogContent>
         </Dialog>
       </div>
     );
-  } else if (msg.attachment_type === 'voice') {
+  }
+
+  if (msg.attachment_type === 'voice') {
     return (
       <div className="mb-2">
-        <VoicePlayer
-          audioUrl={urlToUse}
-          duration={msg.voice_duration || 0}
-          isOwn={isOwn}
-          className={isOwn ? 'bg-white/10' : 'bg-muted/50'}
-        />
-      </div>
-    );
-  } else {
-    return (
-      <div className="mb-2">
-        <AttachmentDisplay
-          url={urlToUse}
-          filename={msg.attachment_filename || msg.attachment_name || 'attachment'}
-          fileType={msg.attachment_type || 'other'}
-          fileSize={msg.attachment_size || 0}
-          className="max-w-xs"
-        />
+        <VoicePlayer audioUrl={urlToUse} duration={msg.voice_duration || 0} isOwn={isOwn} />
       </div>
     );
   }
+
+  // Generic file link
+  return (
+    <div className="mb-2">
+      <a
+        href={urlToUse}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-2 text-sm underline hover:opacity-80"
+      >
+        <Paperclip className="w-4 h-4" />
+        <span>{msg.attachment_filename || msg.attachment_name || 'Attachment'}</span>
+      </a>
+    </div>
+  );
 };
-
-const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { isMobile, isTablet, isTouchDevice, screenWidth, orientation } = useMobile();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [sending, setSending] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [partnerTyping, setPartnerTyping] = useState(false);
-  const [isOnline, setIsOnline] = useState(false);
-  const [lastSeen, setLastSeen] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [lastNewMessageId, setLastNewMessageId] = useState<string | null>(null);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const notificationAudioRef = useRef<HTMLAudioElement>(null);
-
-  // Ensure the input is visible when focused on iOS (keyboard open)
-  const scrollToBottom = useCallback((smooth: boolean = true) => {
-    if (!messagesEndRef.current) return;
-    messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
-  }, []);
-  const typingChannelRef = useRef<RealtimeChannel | null>(null);
   
   // Enhanced UI state
+  // Core chat state & refs
+  const { user } = useAuth();
+  const isMobile = useMobile();
+  const isTouchDevice = typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator && (navigator as any).maxTouchPoints > 0));
+  const { toast } = useToast();
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState<string>('');
+  const [sending, setSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [lastNewMessageId, setLastNewMessageId] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  const [isOnline, setIsOnline] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const scrollToBottom = (smooth = true) => {
+    try {
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+    } catch (e) {
+      // ignore
+    }
+  };
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
@@ -1714,23 +1700,19 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         {/* Input Form */}
         <form
-          className={cn(
-            "flex items-end gap-2",
-            isMobile ? "gap-2" : "gap-3"
-          )}
-          onSubmit={(e) => {
-            e.preventDefault();
-            sendMessage();
-          }}
+          className={cn("flex items-end w-full overflow-hidden", isMobile ? "gap-2" : "gap-3")}
+          onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
         >
           {/* Main Input Container */}
           <div className="flex-1 relative">
-            <div className={cn(
-              "flex items-center bg-background border border-border rounded-full shadow-sm",
-              "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary",
-              "transition-all duration-200",
-              newMessage.length > 400 && "border-warning ring-2 ring-warning/20"
-            )}>
+            <div
+              className={cn(
+                "flex items-center bg-background border border-border rounded-full shadow-sm",
+                "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary",
+                "transition-all duration-200",
+                newMessage.length > 400 && "border-warning ring-2 ring-warning/20"
+              )}
+            >
               {/* Text Input */}
               <input
                 ref={inputRef}
@@ -1741,126 +1723,65 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   isMobile ? "px-3 py-2.5" : "px-4 py-3"
                 )}
                 value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  handleTyping();
-                }}
-                placeholder="Type your message..."
-                disabled={sending}
-                maxLength={500}
-                autoComplete="off"
+                onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
+                onFocus={() => setTimeout(() => scrollToBottom(false), 60)}
                 autoCorrect="on"
                 autoCapitalize="sentences"
-                onFocus={() => {
-                  // Defer to allow keyboard to animate
-                  setTimeout(() => scrollToBottom(false), 60);
-                }}
               />
-              
+
               {/* Action Buttons */}
-              <div className={cn(
-                "flex items-center",
-                isMobile ? "gap-0 pr-1" : "gap-1 pr-2"
-              )}>
-                {/* Emoji Picker */}
-                <div className="relative">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "rounded-full hover:bg-muted transition-colors",
-                      isMobile ? "p-1.5 h-auto" : "p-2 h-auto",
-                      showEmoji && "bg-muted"
-                    )}
-                    onClick={() => setShowEmoji(!showEmoji)}
-                    disabled={sending}
-                  >
-                    <Smile className={cn(
-                      "text-muted-foreground",
-                      isMobile ? "w-4 h-4" : "w-4 h-4"
-                    )} />
+              <div className={cn("flex items-center flex-shrink-0", isMobile ? "gap-1 pr-1" : "gap-1 pr-2")}> 
+                {/* Emoji (desktop only) */}
+                <div className="relative hidden md:block">
+                  <Button type="button" variant="ghost" size="sm" className="p-2 h-auto rounded-full hover:bg-muted transition-colors" onClick={() => setShowEmoji(!showEmoji)} disabled={sending}>
+                    <Smile className="w-4 h-4 text-muted-foreground" />
                   </Button>
                   {showEmoji && (
                     <div className="absolute bottom-full right-0 mb-2 z-50">
-                      <EmojiPicker
-                        onSelect={(emoji) => {
-                          setNewMessage((prev) => prev + emoji);
-                          setShowEmoji(false);
-                          inputRef.current?.focus();
-                        }}
-                        onClose={() => setShowEmoji(false)}
-                      />
+                      <EmojiPicker onSelect={(emoji) => { setNewMessage((prev) => prev + emoji); setShowEmoji(false); inputRef.current?.focus(); }} onClose={() => setShowEmoji(false)} />
                     </div>
                   )}
                 </div>
-                
-                {/* Attachment Button */}
+
+                {/* Attachment (desktop only) */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className={cn(
-                    "rounded-full hover:bg-muted transition-colors",
-                    isMobile ? "p-1.5 h-auto" : "p-2 h-auto",
-                    showAttachments && "bg-muted"
-                  )}
-                  onClick={() => {
-                    setShowAttachments(!showAttachments);
-                    setShowVoiceRecorder(false);
-                  }}
+                  className="hidden md:inline-flex p-2 h-auto rounded-full hover:bg-muted transition-colors"
+                  onClick={() => { setShowAttachments(!showAttachments); setShowVoiceRecorder(false); }}
                   disabled={sending}
                 >
-                  <Paperclip className={cn(
-                    "text-muted-foreground",
-                    isMobile ? "w-4 h-4" : "w-4 h-4"
-                  )} />
+                  <Paperclip className="w-4 h-4 text-muted-foreground" />
                 </Button>
-                
-                {/* Voice Message Button */}
+
+                {/* Voice (desktop only) */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className={cn(
-                    "rounded-full hover:bg-muted transition-colors",
-                    isMobile ? "p-1.5 h-auto" : "p-2 h-auto",
-                    (showVoiceRecorder || isRecordingVoice) && "bg-muted"
-                  )}
-                  onClick={() => {
-                    setShowVoiceRecorder(!showVoiceRecorder);
-                    setShowAttachments(false);
-                  }}
+                  className={cn("hidden md:inline-flex p-2 h-auto rounded-full hover:bg-muted transition-colors", (showVoiceRecorder || isRecordingVoice) && "bg-muted")}
+                  onClick={() => { setShowVoiceRecorder(!showVoiceRecorder); setShowAttachments(false); }}
                   disabled={sending}
                 >
-                  <Mic className={cn(
-                    isRecordingVoice ? "text-red-500 animate-pulse" : "text-muted-foreground",
-                    isMobile ? "w-4 h-4" : "w-4 h-4"
-                  )} />
+                  <Mic className={cn("w-4 h-4", isRecordingVoice ? "text-red-500 animate-pulse" : "text-muted-foreground")} />
+                </Button>
+
+                {/* Send inside input (mobile only) */}
+                <Button
+                  type="submit"
+                  disabled={sending || !newMessage.trim()}
+                  className={cn("md:hidden rounded-full ml-1 px-3 h-9 shadow-md text-white", sending ? "bg-primary/70" : "bg-primary hover:bg-primary/90")}
+                >
+                  {sending ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
           </div>
-          
-          {/* Mobile inline send (visible on small screens) */}
-          <button
-            type="button"
-            aria-label="Send message"
-            onClick={() => sendMessage()}
-            disabled={sending || !newMessage.trim()}
-            className={cn(
-              "inline-flex items-center justify-center shadow-md md:hidden flex-shrink-0",
-              isMobile ? "p-2.5 rounded-full" : "p-2 rounded-full ml-2",
-              sending ? "opacity-60" : "bg-gradient-to-r from-primary to-primary/90 hover:scale-105",
-              "text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            {sending ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </button>
 
           {/* Send Button (desktop/tablet only) */}
           <Button
