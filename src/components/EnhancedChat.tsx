@@ -977,7 +977,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
     return (
       <div className={cn(
         "flex flex-col bg-background border border-border",
-        isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg"
+        isMobile 
+          ? "h-[100dvh] min-h-[100dvh] max-h-[100dvh] rounded-none overflow-hidden" 
+          : "h-full max-h-[600px] rounded-xl shadow-lg"
       )}>
         <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
           <div className="flex items-center gap-3">
@@ -1010,7 +1012,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   return (
     <div className={cn(
       "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
-      isMobile ? "h-screen rounded-none" : "h-full max-h-[600px] rounded-xl shadow-lg",
+      isMobile 
+        ? "h-[100dvh] min-h-[100dvh] max-h-[100dvh] rounded-none w-full" 
+        : "h-full max-h-[600px] rounded-xl shadow-lg",
       isFullscreen && "fixed inset-0 z-50 rounded-none"
     )}>
       {/* Cute animated emoji border overlay (non-interactive) */}
@@ -1374,7 +1378,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         ref={messagesContainerRef} 
         className={cn(
       "flex-1 overflow-y-auto overflow-x-hidden border-bling-top",
-          isMobile ? "px-3 py-2" : "px-4 py-4"
+          isMobile ? "px-2 py-3" : "px-4 py-4",
+          "min-h-0" // Ensure flex child can shrink
         )}
         style={{
           background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%)',
@@ -1446,7 +1451,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   <div className={cn(
                     "flex items-end gap-2 group relative",
                     isOwn ? "justify-end" : "justify-start",
-                    isMobile ? "mb-1" : "mb-2"
+                    isMobile ? "mb-3" : "mb-2"
                   )}>
                     {/* Avatar for received messages */}
                     {!isOwn && (
@@ -1639,13 +1644,15 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       </div>
       {/* Enhanced Input Section */}
       <footer className={cn(
-        "border-t bg-card/80 backdrop-blur-lg",
-        isMobile ? "p-3" : "p-4",
-        "pb-[env(safe-area-inset-bottom)]"
+        "border-t bg-card/80 backdrop-blur-lg flex-shrink-0",
+        isMobile ? "p-2 pb-[max(8px,env(safe-area-inset-bottom))]" : "p-4"
       )}>
         {/* Reply Preview */}
         {replyToMessage && (
-          <div className="flex items-center justify-between mb-3 p-3 rounded-lg bg-muted/50 border border-border/50">
+          <div className={cn(
+            "flex items-center justify-between mb-3 p-3 rounded-lg bg-muted/50 border border-border/50",
+            isMobile && "mb-2 p-2"
+          )}>
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-1 h-8 bg-primary rounded-full" />
               <div className="flex-1 min-w-0">
@@ -1698,7 +1705,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         
         {/* Input Form */}
         <form
-          className="flex items-end gap-3"
+          className={cn(
+            "flex items-end gap-2",
+            isMobile ? "gap-2" : "gap-3"
+          )}
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage();
@@ -1717,9 +1727,9 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                 ref={inputRef}
                 type="text"
                 className={cn(
-                  "flex-1 bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground",
+                  "flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground",
                   "focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
-                  isMobile ? "py-3" : "py-3"
+                  isMobile ? "px-3 py-2.5" : "px-4 py-3"
                 )}
                 value={newMessage}
                 onChange={(e) => {
@@ -1735,7 +1745,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
               />
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-1 pr-2">
+              <div className={cn(
+                "flex items-center",
+                isMobile ? "gap-0 pr-1" : "gap-1 pr-2"
+              )}>
                 {/* Emoji Picker */}
                 <div className="relative">
                   <Button
@@ -1743,13 +1756,17 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "p-2 h-auto rounded-full hover:bg-muted transition-colors",
+                      "rounded-full hover:bg-muted transition-colors",
+                      isMobile ? "p-1.5 h-auto" : "p-2 h-auto",
                       showEmoji && "bg-muted"
                     )}
                     onClick={() => setShowEmoji(!showEmoji)}
                     disabled={sending}
                   >
-                    <Smile className="w-4 h-4 text-muted-foreground" />
+                    <Smile className={cn(
+                      "text-muted-foreground",
+                      isMobile ? "w-4 h-4" : "w-4 h-4"
+                    )} />
                   </Button>
                   {showEmoji && (
                     <div className="absolute bottom-full right-0 mb-2 z-50">
@@ -1771,7 +1788,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "p-2 h-auto rounded-full hover:bg-muted transition-colors",
+                    "rounded-full hover:bg-muted transition-colors",
+                    isMobile ? "p-1.5 h-auto" : "p-2 h-auto",
                     showAttachments && "bg-muted"
                   )}
                   onClick={() => {
@@ -1780,7 +1798,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   }}
                   disabled={sending}
                 >
-                  <Paperclip className="w-4 h-4 text-muted-foreground" />
+                  <Paperclip className={cn(
+                    "text-muted-foreground",
+                    isMobile ? "w-4 h-4" : "w-4 h-4"
+                  )} />
                 </Button>
                 
                 {/* Voice Message Button */}
@@ -1789,7 +1810,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "p-2 h-auto rounded-full hover:bg-muted transition-colors",
+                    "rounded-full hover:bg-muted transition-colors",
+                    isMobile ? "p-1.5 h-auto" : "p-2 h-auto",
                     (showVoiceRecorder || isRecordingVoice) && "bg-muted"
                   )}
                   onClick={() => {
@@ -1799,8 +1821,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                   disabled={sending}
                 >
                   <Mic className={cn(
-                    "w-4 h-4",
-                    isRecordingVoice ? "text-red-500 animate-pulse" : "text-muted-foreground"
+                    isRecordingVoice ? "text-red-500 animate-pulse" : "text-muted-foreground",
+                    isMobile ? "w-4 h-4" : "w-4 h-4"
                   )} />
                 </Button>
               </div>
@@ -1814,7 +1836,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
             onClick={() => sendMessage()}
             disabled={sending || !newMessage.trim()}
             className={cn(
-              "inline-flex items-center justify-center p-2 rounded-full ml-2 shadow-md md:hidden",
+              "inline-flex items-center justify-center shadow-md md:hidden flex-shrink-0",
+              isMobile ? "p-2.5 rounded-full" : "p-2 rounded-full ml-2",
               sending ? "opacity-60" : "bg-gradient-to-r from-primary to-primary/90 hover:scale-105",
               "text-white disabled:opacity-50 disabled:cursor-not-allowed"
             )}
@@ -1846,7 +1869,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
         </form>
         
         {/* Footer Info */}
-        <div className="flex items-center justify-between mt-2 px-1">
+        <div className={cn(
+          "flex items-center justify-between px-1",
+          isMobile ? "mt-1" : "mt-2"
+        )}>
           {/* Character Count */}
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {newMessage.length > 400 && (
@@ -1854,7 +1880,7 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                 "font-medium transition-colors",
                 newMessage.length > 450 ? "text-destructive" : "text-warning"
               )}>
-                {500 - newMessage.length} characters left
+                {500 - newMessage.length} left
               </span>
             )}
             {isTyping && (
