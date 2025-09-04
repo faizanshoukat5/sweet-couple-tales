@@ -153,6 +153,12 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
   const notificationAudioRef = useRef<HTMLAudioElement>(null);
+
+  // Ensure the input is visible when focused on iOS (keyboard open)
+  const scrollToBottom = useCallback((smooth: boolean = true) => {
+    if (!messagesEndRef.current) return;
+    messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+  }, []);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   
   // Enhanced UI state
@@ -975,12 +981,14 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
 
   if (!isValidUUID(partnerId)) {
     return (
-      <div className={cn(
-        "flex flex-col bg-background border border-border",
-        isMobile 
-          ? "h-[100dvh] min-h-[100dvh] max-h-[100dvh] rounded-none overflow-hidden" 
-          : "h-full max-h-[600px] rounded-xl shadow-lg"
-      )}>
+      <div
+        className={cn(
+          "flex flex-col bg-background border border-border",
+          isMobile
+            ? "h-full min-h-0 rounded-none overflow-hidden"
+            : "h-full max-h-[600px] rounded-xl shadow-lg"
+        )}
+      >
         <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -1010,13 +1018,14 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
   }
 
   return (
-    <div className={cn(
-      "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
-      isMobile 
-        ? "h-[100dvh] min-h-[100dvh] max-h-[100dvh] rounded-none w-full" 
-        : "h-full max-h-[600px] rounded-xl shadow-lg",
-      isFullscreen && "fixed inset-0 z-50 rounded-none"
-    )}>
+    <div
+      className={cn(
+        "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
+        isMobile ? "h-full min-h-0 rounded-none w-full" : "h-full max-h-[600px] rounded-xl shadow-lg",
+        isFullscreen && "fixed inset-0 z-50 rounded-none"
+      )}
+      style={isFullscreen ? { height: '100svh', minHeight: '100svh', maxHeight: '100svh' } : undefined}
+    >
       {/* Cute animated emoji border overlay (non-interactive) */}
       {themePack !== 'off' && (
         <div aria-hidden className={cn("emoji-border", themePack === 'subtle' ? "emoji-border--subtle" : "emoji-border--extra")}>          
@@ -1644,8 +1653,8 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
       </div>
       {/* Enhanced Input Section */}
       <footer className={cn(
-        "border-t bg-card/80 backdrop-blur-lg flex-shrink-0",
-        isMobile ? "p-2 pb-[max(8px,env(safe-area-inset-bottom))]" : "p-4"
+        "border-t bg-card/80 backdrop-blur-lg flex-shrink-0 relative z-10",
+        isMobile ? "p-2 pb-[max(10px,env(safe-area-inset-bottom))]" : "p-4"
       )}>
         {/* Reply Preview */}
         {replyToMessage && (
@@ -1742,6 +1751,10 @@ const EnhancedChat = ({ partnerId }: { partnerId: string }) => {
                 autoComplete="off"
                 autoCorrect="on"
                 autoCapitalize="sentences"
+                onFocus={() => {
+                  // Defer to allow keyboard to animate
+                  setTimeout(() => scrollToBottom(false), 60);
+                }}
               />
               
               {/* Action Buttons */}
