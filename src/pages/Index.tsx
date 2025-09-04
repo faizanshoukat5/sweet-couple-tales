@@ -11,7 +11,6 @@ import CallToAction from "@/components/CallToAction";
 import FAQSection from "@/components/FAQSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import StructuredData from "@/components/StructuredData";
-import FloatingQuickAccess from "@/components/FloatingQuickAccess";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -62,9 +61,6 @@ const Index = () => {
       
       {/* Parallax Background */}
       <ParallaxBackground />
-      
-      {/* Floating Quick Access */}
-      <FloatingQuickAccess />
       
   {/* Main Content */}
   <main className="relative z-10 home-zoom">
