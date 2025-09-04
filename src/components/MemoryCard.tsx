@@ -90,9 +90,9 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
 
   if (viewMode === 'list') {
     return (
-  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-2 bg-white/90 backdrop-blur rounded-lg border ring-1 ring-black/5 shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5">
+  <div className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 bg-white/90 backdrop-blur rounded-lg border ring-1 ring-black/5 shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5 compact-memory">
         {/* Image */}
-  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0" style={{width:48, height:48}}>
+  <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0" style={{width:40, height:40}}>
           {firstPhoto && !imageError ? (
             <>
               <img
@@ -129,7 +129,7 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-sm text-gray-900 truncate">{memory.title}</h3>
-              <p className="text-gray-600 text-xs line-clamp-2 mt-1">{memory.content}</p>
+              <p className="text-gray-600 text-[12px] line-clamp-2 mt-0.5">{memory.content}</p>
             </div>
             
             {/* Actions */}
@@ -234,8 +234,8 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   // Grid view (compact)
   return (
   <motion.div whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-  <Card className="group relative overflow-hidden rounded-lg border ring-1 ring-black/5 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-transform duration-200">
-      <div className="relative aspect-[3/4] sm:aspect-[3/4]">
+  <Card className="group relative overflow-hidden rounded-md border ring-1 ring-black/5 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-transform duration-200 compact-memory">
+      <div className="relative aspect-[4/5] sm:aspect-[3/4]">
         {firstPhoto && !imageError ? (
           <>
             <img
@@ -333,13 +333,13 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
         </div>
       </div>
       
-      <CardContent className="p-2 sm:p-2">
-        <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-1">{memory.title}</h3>
-        <p className="text-gray-600 text-[11px] mb-1.5 line-clamp-2">{memory.content}</p>
+      <CardContent className="p-1.5 sm:p-2">
+        <h3 className="font-semibold text-xs text-gray-900 mb-0.5 line-clamp-1">{memory.title}</h3>
+        <p className="text-gray-600 text-[10px] mb-1 line-clamp-1">{memory.content}</p>
         
-        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
+        <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-500">
           <div className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
+            <Calendar className="w-3 h-3" />
             <span>{format(parseISO(memory.memory_date), 'MMM d, yyyy')}</span>
           </div>
           

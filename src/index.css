@@ -324,3 +324,12 @@ All colors MUST be HSL.
 @media (min-width: 768px) { .masonry { column-count: 2; } }
 @media (min-width: 1024px) { .masonry { column-count: 3; } }
 @media (min-width: 1280px) { .masonry { column-count: 4; } }
+
+/* Compact memory card helpers */
+.compact-memory {
+  --card-padding: 0.5rem;
+  font-size: 0.95rem;
+}
+.compact-memory .card-content {
+  padding: var(--card-padding);
+}

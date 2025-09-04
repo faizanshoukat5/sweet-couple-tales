@@ -14,7 +14,7 @@ interface Props {
 
 // Simple responsive grid virtualization (fixed card height). For masonry, we keep visual spacing while
 // still massively reducing DOM nodes; true dynamic masonry would need VariableSizeList/Grid.
-export default function VirtualizedMemoryList({ items, columnWidth = 260, rowHeight = 340, gap = 18, viewMode }: Props) {
+export default function VirtualizedMemoryList({ items, columnWidth = 180, rowHeight = 220, gap = 8, viewMode }: Props) {
   // Prefetch cover images for all visible memories (only grid mode)
   usePrefetchOnIntersect(
     items.map(m => m.cover_photo).filter(Boolean) as string[],
@@ -32,7 +32,7 @@ export default function VirtualizedMemoryList({ items, columnWidth = 260, rowHei
   }
 
   return (
-    <div data-memory-grid style={{ width: '100%', height: Math.min(900, Math.max(480, Math.ceil(items.length / 3) * (rowHeight + gap))) }}>
+    <div data-memory-grid style={{ width: '100%', height: Math.min(800, Math.max(360, Math.ceil(items.length / 4) * (rowHeight + gap))) }}>
       <AutoSizer>
         {({ width, height }) => {
           const columns = Math.max(1, Math.floor((width + gap) / (columnWidth + gap)));
