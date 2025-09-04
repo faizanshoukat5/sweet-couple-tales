@@ -490,6 +490,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
+  // Scroll to the newly appended optimistic message
+  setTimeout(() => scrollToBottom(true), 80);
     setNewMessage("");
     setReplyToMessage(null);
 
@@ -508,6 +510,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         .single();
       if (error) throw error;
       setMessages(prev => prev.map(msg => (msg.id === tempId ? { ...(data as Message) } : msg)));
+  // Ensure final server message is visible
+  setTimeout(() => scrollToBottom(true), 60);
     } catch (error) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       toast({ title: "Failed to send message", description: "Please try again.", variant: "destructive" });
