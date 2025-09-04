@@ -76,39 +76,38 @@ const ParallaxHero = () => {
               ref={titleRef}
               className={`flex items-center justify-center lg:justify-start gap-3 scroll-reveal ${titleVisible ? 'revealed' : ''}`}
             >
-              <ParallaxContainer speed={0.2} direction="up">
-                <img 
-                  src={heartFlowers} 
-                  alt="Heart" 
-                  className="w-12 h-12 animate-heart-float"
-                />
-              </ParallaxContainer>
-              <h1 className="font-serif text-5xl lg:text-7xl font-bold text-foreground">
-                Couple
-                <span className="block text-primary">Connect</span>
-              </h1>
+                <ParallaxContainer speed={0.2} direction="up">
+                  <img
+                    src={heartFlowers}
+                    alt="Heart"
+                    className="w-14 h-14 animate-soft-float"
+                  />
+                </ParallaxContainer>
+                <h1 className="font-serif text-6xl md:text-7xl lg:text-9xl leading-tight font-extrabold tracking-tight text-foreground">
+                  <span className="block bg-gradient-hero bg-clip-text text-transparent">Couple</span>
+                  <span className="block bg-gradient-hero bg-clip-text text-transparent">Connect</span>
+                </h1>
             </div>
             
-            <div 
+            <div
               ref={subtitleRef}
-              className={`text-xl lg:text-2xl text-muted-foreground leading-relaxed font-light scroll-reveal ${subtitleVisible ? 'revealed' : ''}`}
+              className={`text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed font-light max-w-2xl scroll-reveal ${subtitleVisible ? 'revealed' : ''}`}
               style={{ animationDelay: '0.2s' }}
             >
-              Connect deeper with your partner through shared memories and moments. 
-              Create, share, and cherish your love story together in one beautiful space.
+              Connect deeper with your partner through curated memories and shared moments — a private, beautiful space to celebrate your story.
             </div>
             
-            <div 
+            <div
               ref={buttonsRef}
               className={`flex flex-col sm:flex-row gap-4 justify-center lg:justify-start scroll-reveal ${buttonsVisible ? 'revealed' : ''} mt-8`}
               style={{ animationDelay: '0.4s' }}
             >
               {user ? (
                 <>
-                  <Button 
-                    variant="romantic" 
-                    size="lg" 
-                    className="text-lg px-8 py-6 font-serif transform hover:scale-105 transition-all duration-300 relative z-10"
+                  <Button
+                    variant="romantic"
+                    size="lg"
+                    className="text-lg md:text-xl px-8 py-5 font-serif transform hover:-translate-y-1 hover:shadow-2xl transition-all duration-350 relative z-10"
                     onClick={handleGetStarted}
                   >
                     View My Dashboard
@@ -124,10 +123,10 @@ const ParallaxHero = () => {
                 </>
               ) : (
                 <>
-                  <Button 
-                    variant="romantic" 
-                    size="lg" 
-                    className="text-lg px-8 py-6 font-serif transform hover:scale-105 transition-all duration-300 relative z-10"
+                  <Button
+                    variant="romantic"
+                    size="lg"
+                    className="text-lg md:text-xl px-8 py-5 font-serif transform hover:-translate-y-1 hover:shadow-2xl transition-all duration-350 relative z-10"
                     onClick={handleGetStarted}
                   >
                     Start Your Journey
@@ -146,22 +145,27 @@ const ParallaxHero = () => {
           </div>
           
           {/* Right side - Hero image */}
-          <div 
-            ref={imageRef}
-            className={`relative scroll-reveal-right ${imageVisible ? 'revealed' : ''}`}
-            style={{ animationDelay: '0.6s' }}
-          >
-            <ParallaxContainer speed={0.2} direction="up" className="relative">
-              <Card className="overflow-hidden shadow-romantic border-0 bg-gradient-to-br from-primary/5 to-secondary/5 transform hover:scale-105 transition-all duration-500">
-                <CardContent className="p-0">
-                  <img 
-                    src={heroImage}
-                    alt="Couple creating beautiful memories together"
-                    className="w-full h-[500px] object-cover"
-                  />
-                </CardContent>
-              </Card>
-            </ParallaxContainer>
+            <div
+              ref={imageRef}
+              className={`relative scroll-reveal-right ${imageVisible ? 'revealed' : ''}`}
+              style={{ animationDelay: '0.6s' }}
+            >
+              <ParallaxContainer speed={0.18} direction="up" className="relative">
+                <Card className="overflow-hidden shadow-romantic border-0 bg-gradient-to-br from-primary/5 to-secondary/5 transform hover:scale-105 transition-all duration-700">
+                  <CardContent className="p-0">
+                    <picture>
+                      <source srcSet={heroImage.replace('.jpg', '.avif')} type="image/avif" />
+                      <source srcSet={heroImage.replace('.jpg', '.webp')} type="image/webp" />
+                      <img
+                        src={heroImage}
+                        alt="Couple creating beautiful memories together"
+                        className="w-full h-[560px] object-cover rounded-xl"
+                        style={{ transform: 'translateZ(0)' }}
+                      />
+                    </picture>
+                  </CardContent>
+                </Card>
+              </ParallaxContainer>
             
             {/* Floating elements with parallax */}
             <ParallaxContainer speed={0.4} direction="down" className="absolute -top-4 -right-4">

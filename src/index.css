@@ -246,6 +246,21 @@ All colors MUST be HSL.
     opacity: 1;
     transform: translateX(0);
   }
+
+  /* Gradient heading text for cinematic hero */
+  .bg-clip-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .hero-lead {
+    text-shadow: 0 6px 30px rgba(0,0,0,0.06);
+  }
+
+  /* Elevated CTA */
+  .shadow-2xl {
+    box-shadow: 0 20px 50px rgba(21, 6, 50, 0.12);
+  }
 }
 
 /* Responsive masonry columns */
