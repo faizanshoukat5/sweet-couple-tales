@@ -23,9 +23,9 @@ export const useMoods = () => {
         .select('mood')
         .eq('user_id', userId)
         .eq('date', date)
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching mood:', error);
         return null;
       }

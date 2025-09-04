@@ -1,4 +1,4 @@
-# Sweet Couple Tales 💕
+# CoupleConnect 💕
 
 A beautiful romantic memories journal app for couples to preserve their special moments together.
 
@@ -72,11 +72,11 @@ Keep your relationship exciting with fresh ideas for quality time together.
 
 ## 🚀 Live Demo
 
-**URL**: [Sweet Couple Tales](https://sweet-couple-tales.netlify.app)
+**URL**: [CoupleConnect](https://coupleconnect.netlify.app)
 
 ## 📁 Repository
 
-**GitHub**: https://github.com/faizanshoukat5/sweet-couple-tales
+**GitHub**: https://github.com/faizanshoukat5/coupleconnect
 
 ## 🛠️ Tech Stack
 
@@ -96,8 +96,8 @@ Keep your relationship exciting with fresh ideas for quality time together.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/faizanshoukat5/sweet-couple-tales.git
-cd sweet-couple-tales
+git clone https://github.com/faizanshoukat5/coupleconnect.git
+cd coupleconnect
 ```
 
 ### 2. Install Dependencies
@@ -223,11 +223,11 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 💖 About
 
-Sweet Couple Tales is designed to help couples preserve and celebrate their love story. Every relationship has beautiful moments that deserve to be remembered forever.
+CoupleConnect is designed to help couples preserve and celebrate their love story. Every relationship has beautiful moments that deserve to be remembered forever.
 
 ## 🐛 Issues & Support
 
-If you encounter any issues or have suggestions, please [open an issue](https://github.com/faizanshoukat5/sweet-couple-tales/issues) on GitHub.
+If you encounter any issues or have suggestions, please [open an issue](https://github.com/faizanshoukat5/coupleconnect/issues) on GitHub.
 
 ---
 

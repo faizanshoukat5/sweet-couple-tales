@@ -5,9 +5,9 @@ const StructuredData = () => {
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "Sweet Couple Tales",
+      "name": "CoupleConnect",
       "description": "A beautiful romantic memories journal app for couples to preserve their special moments together",
-      "url": "https://sweet-couple-tales.lovable.app",
+      "url": "https://coupleconnect.lovable.app",
       "applicationCategory": "LifestyleApplication",
       "operatingSystem": "Web Browser",
       "offers": {
@@ -22,7 +22,7 @@ const StructuredData = () => {
       },
       "creator": {
         "@type": "Organization",
-        "name": "Sweet Couple Tales"
+        "name": "CoupleConnect"
       },
       "featureList": [
         "Create Beautiful Memories",

@@ -334,7 +334,7 @@ function Features({ isAuthenticated }: { isAuthenticated: boolean }) {
             <span className="text-primary block">Love Story</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Sweet Couple Tales provides all the tools you need to document,
+            CoupleConnect provides all the tools you need to document,
             organize,
             <br className="hidden sm:block" /> and treasure your relationship's
             most beautiful moments.

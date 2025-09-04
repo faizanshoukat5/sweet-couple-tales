@@ -12,7 +12,7 @@ const sections: Section[] = [
     id: "getting-started",
     title: "Getting Started",
     items: [
-      { id: "what-is", question: "What is Sweet Couple Tales?", answer: "A private, all‑in‑one space for couples to capture memories, chat in real‑time, share love notes, track moods, plan goals, and celebrate their journey together." },
+      { id: "what-is", question: "What is CoupleConnect?", answer: "A private, all‑in‑one space for couples to capture memories, chat in real‑time, share love notes, track moods, plan goals, and celebrate their journey together." },
       { id: "signup", question: "How do we begin?", answer: "Both partners create accounts. One initiates a partner link in Settings → Select Partner. After acceptance you unlock shared features (chat, notes, goals, calendar)." },
       { id: "mobile", question: "Does it work on mobile?", answer: "Yes. The UI is fully responsive. Add it to your home screen via your browser's 'Add to Home Screen' for an app‑like feel." },
       { id: "profile-setup", question: "What should we do first?", answer: "Complete profile setup: add display names, relationship start date, connect partner, then create your first memory or album." },

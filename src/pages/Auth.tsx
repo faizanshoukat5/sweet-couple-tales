@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import heartFlowers from '@/assets/heart-flowers.png';
+import heartFlowers from '/heart-flowerss.png';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -38,7 +38,7 @@ const Auth = () => {
         });
       } else {
         toast({
-          title: "Welcome to Sweet Couple Tales!",
+          title: "Welcome to CoupleConnect!",
           description: "Please check your email to verify your account.",
         });
       }
@@ -91,8 +91,8 @@ const Auth = () => {
               className="w-12 h-12 animate-heart-float"
             />
             <h1 className="font-serif text-4xl font-bold text-foreground">
-              Sweet Couple
-              <span className="block text-primary">Tales</span>
+              Couple
+              <span className="block text-primary">Connect</span>
             </h1>
           </div>
           <p className="text-muted-foreground">

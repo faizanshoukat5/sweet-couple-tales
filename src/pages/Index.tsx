@@ -18,11 +18,11 @@ const Index = () => {
 
   // Enhanced SEO setup
   useEffect(() => {
-    document.title = "Sweet Couple Tales - Your Love Story Journal | Create Beautiful Memories Together";
+    document.title = "CoupleConnect - Your Love Story Journal | Create Beautiful Memories Together";
     
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Create, share and cherish your love story with Sweet Couple Tales. A private journal for couples with timeline views, secure chat, mood tracking and more. Start preserving your beautiful memories today!');
+      metaDescription.setAttribute('content', 'Create, share and cherish your love story with CoupleConnect. A private journal for couples with timeline views, secure chat, mood tracking and more. Start preserving your beautiful memories today!');
     }
 
     // Add canonical URL
@@ -66,8 +66,8 @@ const Index = () => {
       {/* Floating Quick Access */}
       <FloatingQuickAccess />
       
-      {/* Main Content */}
-      <main className="relative z-10">
+  {/* Main Content */}
+  <main className="relative z-10 home-zoom">
         <ParallaxHero />
         
         <ParallaxSection backgroundElements={<FeaturesBackground />}>

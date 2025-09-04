@@ -6,7 +6,7 @@ const testimonials = [
   {
     name: "Sarah & Mike",
     relationship: "Together 3 years",
-    content: "Sweet Couple Tales has become our digital scrapbook. We love looking back at our memories and seeing how far we've come together!",
+    content: "CoupleConnect has become our digital scrapbook. We love looking back at our memories and seeing how far we've come together!",
     rating: 5,
     avatar: "💑"
   },

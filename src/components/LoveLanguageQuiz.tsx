@@ -403,7 +403,7 @@ export const LoveLanguageQuiz: React.FC<LoveLanguageQuizProps> = () => {
     const shareText = `I just discovered my Love Language! 💕\n\n` +
       `My primary love language is: ${primaryLanguage}\n` +
       (secondaryLanguage ? `My secondary love language is: ${secondaryLanguage}\n` : '') +
-      `\nWhat's your love language? Take the quiz at Sweet Couple Tales! 🌹`;
+      `\nWhat's your love language? Take the quiz at CoupleConnect! 🌹`;
 
     // Try to use the Web Share API if available
     if (navigator.share) {

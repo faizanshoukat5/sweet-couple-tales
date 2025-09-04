@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-romantic.jpg";
-import heartFlowers from "@/assets/heart-flowers.png";
+import heartFlowers from '/heart-flowerss.png';
 
 const Hero = () => {
   const { user, signOut } = useAuth();
@@ -36,14 +36,14 @@ const Hero = () => {
                 className="w-12 h-12 animate-heart-float"
               />
               <h1 className="font-serif text-5xl lg:text-7xl font-bold text-foreground">
-                Sweet Couple
-                <span className="block text-primary">Tales</span>
+                Couple
+                <span className="block text-primary">Connect</span>
               </h1>
             </div>
             
             <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed font-light">
-              Preserve your beautiful love story with a private journal designed for couples. 
-              Create, share, and cherish your most precious memories together.
+              Connect deeper with your partner through shared memories and moments. 
+              Create, share, and cherish your love story together in one beautiful space.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

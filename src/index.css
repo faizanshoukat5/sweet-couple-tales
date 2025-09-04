@@ -201,6 +201,28 @@ All colors MUST be HSL.
       transform: translateY(-15px) rotate(1deg);
     }
   }
+
+  /* Gentle soft float (subtle vertical bob) */
+  .animate-soft-float {
+    animation: softFloat 5s ease-in-out infinite;
+  }
+  @keyframes softFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* Page zoom utility for homepage */
+  .home-zoom {
+    zoom: 0.8; /* Most Chromium-based browsers */
+  }
+  @supports not (zoom: 1) {
+    .home-zoom {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      transform-origin: top center;
+    }
+  }
   
   /* Scroll reveal animations */
   .scroll-reveal {

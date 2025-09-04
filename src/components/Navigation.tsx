@@ -20,10 +20,12 @@ import {
   X,
   Download,
   Bell,
-  BellOff
+  BellOff,
+  LayoutDashboard,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import heartFlowers from '@/assets/heart-flowers.png';
+import heartFlowers from '/heart-flowerss.png';
 import { useMemories } from '@/hooks/useMemories';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -51,7 +53,8 @@ const Navigation = () => {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/dashboard', label: 'My Memories', icon: Heart, requireAuth: true },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, requireAuth: true },
+    { path: '/faq', label: 'FAQ', icon: HelpCircle },
   ];
 
   const getInitials = (email: string) => {
@@ -70,7 +73,7 @@ const Navigation = () => {
               className="w-8 h-8 animate-heart-float"
             />
             <span className="font-serif text-xl font-bold text-foreground">
-              Sweet Couple <span className="text-primary">Tales</span>
+              Couple<span className="text-primary">Connect</span>
             </span>
           </Link>
 

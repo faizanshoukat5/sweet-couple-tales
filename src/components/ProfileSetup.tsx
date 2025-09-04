@@ -186,7 +186,7 @@ const ProfileSetup = ({ open, onOpenChange }: ProfileSetupProps) => {
         <div className="flex flex-col items-center gap-2 mb-4">
           <span className="inline-flex items-center gap-2 text-2xl font-bold text-rose-500">
             <Heart className="w-7 h-7 animate-pulse text-rose-400" />
-            Welcome to Sweet Couple Tales!
+            Welcome to CoupleConnect!
             <Sparkles className="w-5 h-5 text-yellow-400 ml-1 animate-bounce" />
           </span>
           <div className="text-muted-foreground text-center text-base">Let’s set up your romantic profile</div>

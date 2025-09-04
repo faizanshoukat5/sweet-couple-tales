@@ -267,7 +267,7 @@ export const useMemories = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sweet-couple-tales-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `coupleconnect-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -292,7 +292,7 @@ export const useMemories = () => {
       const doc = new jsPDF();
       let y = 10;
       doc.setFontSize(18);
-      doc.text('Sweet Couple Tales - Memories', 10, y);
+      doc.text('CoupleConnect - Memories', 10, y);
       y += 10;
       doc.setFontSize(12);
       for (let idx = 0; idx < memories.length; idx++) {
@@ -321,7 +321,7 @@ export const useMemories = () => {
         }
         y += 8;
       }
-      doc.save(`sweet-couple-tales-memories.pdf`);
+      doc.save(`coupleconnect-memories.pdf`);
     } catch (error) {
       toast({ title: 'PDF Export Error', description: 'Failed to export as PDF', variant: 'destructive' });
     }

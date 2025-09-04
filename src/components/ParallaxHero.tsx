@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import ParallaxContainer from "./ParallaxContainer";
 import heroImage from "@/assets/hero-romantic.jpg";
-import heartFlowers from "@/assets/heart-flowers.png";
+import heartFlowers from '/heart-flowerss.png';
 import '../styles/parallax.css';
 
 const ParallaxHero = () => {
@@ -84,8 +84,8 @@ const ParallaxHero = () => {
                 />
               </ParallaxContainer>
               <h1 className="font-serif text-5xl lg:text-7xl font-bold text-foreground">
-                Sweet Couple
-                <span className="block text-primary">Tales</span>
+                Couple
+                <span className="block text-primary">Connect</span>
               </h1>
             </div>
             
@@ -94,8 +94,8 @@ const ParallaxHero = () => {
               className={`text-xl lg:text-2xl text-muted-foreground leading-relaxed font-light scroll-reveal ${subtitleVisible ? 'revealed' : ''}`}
               style={{ animationDelay: '0.2s' }}
             >
-              Preserve your beautiful love story with a private journal designed for couples. 
-              Create, share, and cherish your most precious memories together.
+              Connect deeper with your partner through shared memories and moments. 
+              Create, share, and cherish your love story together in one beautiful space.
             </div>
             
             <div 
@@ -158,7 +158,6 @@ const ParallaxHero = () => {
                     src={heroImage}
                     alt="Couple creating beautiful memories together"
                     className="w-full h-[500px] object-cover"
-                    fetchPriority="high"
                   />
                 </CardContent>
               </Card>
