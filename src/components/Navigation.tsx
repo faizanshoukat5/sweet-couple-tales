@@ -63,16 +63,16 @@ const Navigation = () => {
 
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+      <div className="container mx-auto px-3 sm:px-4">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0">
             <img 
               src={heartFlowers} 
               alt="Heart logo" 
-              className="w-8 h-8 animate-heart-float"
+              className="w-7 h-7 sm:w-8 sm:h-8 animate-heart-float"
             />
-            <span className="font-serif text-xl font-bold text-foreground">
+            <span className="font-serif text-lg sm:text-xl font-bold text-foreground">
               Couple<span className="text-primary">Connect</span>
             </span>
           </Link>
@@ -101,7 +101,7 @@ const Navigation = () => {
           </div>
 
           {/* Right side actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {user ? (
               <>
                 {/* Notifications - Desktop */}
@@ -137,10 +137,10 @@ const Navigation = () => {
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                      <Avatar className="h-9 w-9">
+                    <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full">
+                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                         <AvatarImage src="" alt={user.email || 'User'} />
-                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
                           {getInitials(user.email || 'U')}
                         </AvatarFallback>
                       </Avatar>
@@ -217,11 +217,11 @@ const Navigation = () => {
                 </DropdownMenu>
               </>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" asChild>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Button variant="ghost" size="sm" asChild className="text-sm">
                   <Link to="/auth">Sign In</Link>
                 </Button>
-                <Button variant="romantic" asChild>
+                <Button variant="romantic" size="sm" asChild className="text-sm">
                   <Link to="/auth">Get Started</Link>
                 </Button>
               </div>
@@ -231,7 +231,7 @@ const Navigation = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden"
+              className="md:hidden h-8 w-8 p-0"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -242,7 +242,7 @@ const Navigation = () => {
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-border bg-card">
-            <div className="px-2 pt-2 pb-3 space-y-1">
+            <div className="px-3 pt-2 pb-3 space-y-1">
               {navLinks.map((link) => {
                 if (link.requireAuth && !user) return null;
                 const Icon = link.icon;
@@ -252,13 +252,13 @@ const Navigation = () => {
                     to={link.path}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg text-base font-medium transition-colors",
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                       isActive(link.path)
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                     {link.label}
                   </Link>
                 );
