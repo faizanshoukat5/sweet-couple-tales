@@ -71,8 +71,8 @@ const SharedCalendar = () => {
   const selectedEvents = selected ? eventsByDay.get(selected.toDateString()) : undefined;
 
   return (
-    <div className="max-w-xl mx-auto my-8 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Shared Calendar</h2>
+    <div className="max-w-md mx-auto my-4 p-3 bg-white rounded shadow">
+      <h2 className="text-lg font-semibold mb-2">Shared Calendar</h2>
       {loading ? (
         <div>Loading...</div>
       ) : (
@@ -84,12 +84,12 @@ const SharedCalendar = () => {
           modifiersClassNames={{ marked: 'bg-rose-200 text-rose-700 font-bold' }}
         />
       )}
-      <div className="mt-4 text-sm text-gray-500">
+  <div className="mt-3 text-sm text-gray-500">
         <b>Legend:</b> <span className="bg-rose-200 text-rose-700 px-2 py-1 rounded">Marked</span> = Important Date
       </div>
       {selected && (
-        <div className="mt-4">
-          <h3 className="font-semibold mb-2">Events on {selected.toLocaleDateString()}:</h3>
+        <div className="mt-3">
+          <h3 className="font-semibold mb-1 text-sm">Events on {selected.toLocaleDateString()}:</h3>
           {selectedEvents ? (
             <ul className="list-disc ml-6">
               {selectedEvents.map((ev, i) => (
@@ -97,13 +97,13 @@ const SharedCalendar = () => {
               ))}
             </ul>
           ) : (
-            <div className="text-gray-400">No events.</div>
+            <div className="text-gray-400 text-sm">No events.</div>
           )}
         </div>
       )}
       {/* Upcoming Events List */}
-      <div className="mt-6">
-        <h3 className="font-semibold mb-2">Upcoming Events</h3>
+      <div className="mt-4">
+        <h3 className="font-semibold mb-1 text-sm">Upcoming Events</h3>
         {upcoming.length > 0 ? (
           <ul className="list-disc ml-6">
             {upcoming.map((ev, i) => (
@@ -113,7 +113,7 @@ const SharedCalendar = () => {
             ))}
           </ul>
         ) : (
-          <div className="text-gray-400">No upcoming events.</div>
+          <div className="text-gray-400 text-sm">No upcoming events.</div>
         )}
       </div>
     </div>
