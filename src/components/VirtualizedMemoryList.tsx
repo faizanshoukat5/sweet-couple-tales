@@ -3,6 +3,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import MemoryCard from './MemoryCard';
 import { Memory } from '@/hooks/useMemories';
 import { usePrefetchOnIntersect } from '@/hooks/useResponsiveMemoryImage';
+import { memo, useCallback } from 'react';
 
 interface Props {
   items: Memory[];
@@ -14,7 +15,7 @@ interface Props {
 
 // Simple responsive grid virtualization (fixed card height). For masonry, we keep visual spacing while
 // still massively reducing DOM nodes; true dynamic masonry would need VariableSizeList/Grid.
-export default function VirtualizedMemoryList({ items, columnWidth = 180, rowHeight = 220, gap = 8, viewMode }: Props) {
+const VirtualizedMemoryList = memo(function VirtualizedMemoryList({ items, columnWidth = 180, rowHeight = 220, gap = 8, viewMode }: Props) {
   // Prefetch cover images for all visible memories (only grid mode)
   usePrefetchOnIntersect(
     items.map(m => m.cover_photo).filter(Boolean) as string[],
@@ -38,7 +39,7 @@ export default function VirtualizedMemoryList({ items, columnWidth = 180, rowHei
           const columns = Math.max(1, Math.floor((width + gap) / (columnWidth + gap)));
           const itemWidth = Math.floor((width - gap * (columns - 1)) / columns);
           const rows = Math.ceil(items.length / columns);
-          const Cell = ({ columnIndex, rowIndex, style }) => {
+          const Cell = useCallback(({ columnIndex, rowIndex, style }) => {
             const index = rowIndex * columns + columnIndex;
             if (index >= items.length) return null;
             const memory = items[index];
@@ -48,7 +49,7 @@ export default function VirtualizedMemoryList({ items, columnWidth = 180, rowHei
                 <MemoryCard memory={memory} viewMode="grid" />
               </div>
             );
-          };
+          }, [items, columns, gap, itemWidth, rowHeight]);
           return (
             <Grid
               columnCount={columns}
@@ -66,4 +67,6 @@ export default function VirtualizedMemoryList({ items, columnWidth = 180, rowHei
       </AutoSizer>
     </div>
   );
-}
+});
+
+export default VirtualizedMemoryList;

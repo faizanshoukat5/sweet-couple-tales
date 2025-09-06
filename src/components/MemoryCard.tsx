@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Memory, useMemories } from '@/hooks/useMemories';
 import { Card, CardContent } from '@/components/ui/card';
@@ -372,4 +372,4 @@ const MemoryCard = ({ memory, viewMode }: MemoryCardProps) => {
   );
 };
 
-export default MemoryCard;
+export default memo(MemoryCard);
