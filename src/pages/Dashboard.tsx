@@ -681,64 +681,94 @@ const Dashboard = () => {
           className="memory-section"
         >
           <div className="p-6">
+            {/* Toolbar: summary + view toggles + actions */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-muted-foreground">Showing</div>
+                <div className="bg-rose-50 rounded-full px-3 py-1 text-rose-700 font-semibold">{filteredMemories.length} memories</div>
+                {favoriteMemories.length > 0 && <div className="text-sm text-muted-foreground">· {favoriteMemories.length} favorites</div>}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2">
+                  <Button size="icon" variant={viewMode === 'grid' ? 'romantic' : 'outline'} onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} title="Grid view">
+                    <Grid className="w-4 h-4" />
+                  </Button>
+                  <Button size="icon" variant={viewMode === 'list' ? 'romantic' : 'outline'} onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} title="List view">
+                    <List className="w-4 h-4" />
+                  </Button>
+                </div>
+                <select value={sortMode} onChange={e=>setSortMode(e.target.value as any)} className="rounded-full border border-rose-100 px-3 py-1 text-sm focus:ring-rose-200">
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="favorites">Favorites First</option>
+                  <option value="date-asc">Date Asc</option>
+                </select>
+                <Button variant="outline" onClick={() => { setSelectedTag(null); setSearchTerm(''); searchRef.current?.focus(); }} className="rounded-full">Clear</Button>
+                <Button variant="romantic" onClick={() => setShowCreateModal(true)} className="rounded-full">Add Memory</Button>
+              </div>
+            </div>
+
+            {/* Tabs: All / Favorites */}
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-10 bg-rose-50 rounded-xl shadow-inner">
-                <TabsTrigger value="all" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
-                  <Calendar className="w-5 h-5" />
-                  All <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{filteredMemories.length}</span>
+              <TabsList className="flex rounded-xl bg-rose-50 p-1 gap-2 max-w-md mb-6">
+                <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 px-3 text-sm font-semibold text-rose-600">
+                  <Calendar className="inline w-4 h-4 mr-2" /> All <span className="ml-2 inline-block bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{filteredMemories.length}</span>
                 </TabsTrigger>
-                <TabsTrigger value="favorites" className="flex items-center gap-2 text-lg font-semibold text-rose-600 data-[state=active]:border-b-4 data-[state=active]:border-rose-400 transition-all">
-                  <Heart className="w-5 h-5" />
-                  Favorites <span className="ml-1 bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{favoriteMemories.length}</span>
+                <TabsTrigger value="favorites" className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 px-3 text-sm font-semibold text-rose-600">
+                  <Heart className="inline w-4 h-4 mr-2" /> Favorites <span className="ml-2 inline-block bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold">{favoriteMemories.length}</span>
                 </TabsTrigger>
               </TabsList>
+
               <TabsContent value="all">
                 {filteredMemories.length === 0 ? (
-                  <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
-                    <CardContent className="p-12 text-center">
+                  <Card className="bg-white border border-rose-50 shadow-sm">
+                    <CardContent className="p-10 text-center">
                       <Calendar className="w-16 h-16 text-rose-200 mx-auto mb-4" />
                       <h3 className="text-2xl font-bold mb-2 text-rose-600">No memories found</h3>
-                      <p className="text-muted-foreground mb-6">
-                        {memories.length === 0
-                          ? 'Start creating your beautiful love story by adding your first memory!'
-                          : 'Try adjusting your search or filters to find what you\'re looking for.'}
-                      </p>
-                      <Button onClick={() => setShowCreateModal(true)} variant="romantic" className="px-6 py-3 text-lg rounded-full">
-                        <Plus className="w-5 h-5 mr-2" />
-                        Create Your First Memory
+                      <p className="text-muted-foreground mb-6">Start by adding a memory or try clearing filters.</p>
+                      <Button onClick={() => setShowCreateModal(true)} variant="romantic" className="px-6 py-3 rounded-full">
+                        <Plus className="w-4 h-4 mr-2" /> Add your first memory
                       </Button>
                     </CardContent>
                   </Card>
                 ) : (
                   viewMode === 'grid' ? (
-                    <VirtualizedMemoryList items={filteredMemories} viewMode="grid" />
-                  ) : (
-                    <div className="space-y-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                       {filteredMemories.map(memory => (
-                        <MemoryCard key={memory.id} memory={memory} viewMode={viewMode} />
+                        <MemoryCard key={memory.id} memory={memory} viewMode="grid" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredMemories.map(memory => (
+                        <MemoryCard key={memory.id} memory={memory} viewMode="list" />
                       ))}
                     </div>
                   )
                 )}
               </TabsContent>
+
               <TabsContent value="favorites">
                 {favoriteMemories.length === 0 ? (
-                  <Card className="bg-gradient-to-br from-white to-rose-50 border-0 shadow-md">
-                    <CardContent className="p-12 text-center">
+                  <Card className="bg-white border border-rose-50 shadow-sm">
+                    <CardContent className="p-10 text-center">
                       <Heart className="w-16 h-16 text-rose-200 mx-auto mb-4" />
-                      <h3 className="text-2xl font-bold mb-2 text-rose-600">No favorite memories yet</h3>
-                      <p className="text-muted-foreground">
-                        Mark your most special memories as favorites by clicking the heart icon!
-                      </p>
+                      <h3 className="text-2xl font-bold mb-2 text-rose-600">No favorites yet</h3>
+                      <p className="text-muted-foreground">Tap the heart icon on a memory to mark it as a favorite.</p>
                     </CardContent>
                   </Card>
                 ) : (
                   viewMode === 'grid' ? (
-                    <VirtualizedMemoryList items={favoriteMemories} viewMode="grid" />
-                  ) : (
-                    <div className="space-y-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                       {favoriteMemories.map(memory => (
-                        <MemoryCard key={memory.id} memory={memory} viewMode={viewMode} />
+                        <MemoryCard key={memory.id} memory={memory} viewMode="grid" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {favoriteMemories.map(memory => (
+                        <MemoryCard key={memory.id} memory={memory} viewMode="list" />
                       ))}
                     </div>
                   )
