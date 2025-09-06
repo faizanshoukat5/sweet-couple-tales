@@ -4,6 +4,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMobile } from "@/hooks/useMobile";
+import { useRealtimeChat } from '@/hooks/useRealtimeChat';
 import { Button } from "@/components/ui/button";
 import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft, Info, Bell, BellOff, Trash2, ChevronDown } from "lucide-react";
 import "./EnhancedChatAnimations.css";
@@ -466,6 +467,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       });
     }
   };
+  // Optimized typing indicator with faster response
   const handleTyping = useCallback(() => {
     if (!isTyping) {
       setIsTyping(true);
@@ -477,14 +479,14 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       clearTimeout(typingTimeoutRef.current);
     }
     
-    // Set new timeout
+    // Faster timeout for more responsive feel (1.5s instead of 2s)
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       sendTypingIndicator(false);
-    }, 2000);
+    }, 1500);
   }, [isTyping, sendTypingIndicator]);
 
-  // Send message with optimistic UI
+  // Send message with instant optimistic UI
   const sendMessage = async () => {
     if (!newMessage.trim() || sending || !user?.id) return;
     if (!isValidUUID(partnerId)) {
@@ -510,11 +512,14 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       delivered_at: timestamp,
       ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
     };
+    
+    // Immediate UI updates for instant feedback
     setMessages((prev) => [...prev, optimisticMsg]);
-    // Single scroll to bottom for sent message
-    setTimeout(() => scrollToBottom(true), 100);
     setNewMessage("");
     setReplyToMessage(null);
+    
+    // Instant scroll without delay
+    scrollToBottom(true);
 
     try {
       const { data, error } = await supabase
@@ -530,18 +535,22 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         .select()
         .single();
       if (error) throw error;
+      
+      // Replace optimistic message with confirmed one
       setMessages(prev => prev.map(msg => (msg.id === tempId ? { ...(data as Message) } : msg)));
     } catch (error) {
+      // Remove failed message
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       toast({ title: "Failed to send message", description: "Please try again.", variant: "destructive" });
       chatHaptics.error();
     } finally {
       setSending(false);
-      inputRef.current?.focus();
+      // Keep focus on input for continuous typing
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
 
-  // Fetch messages (with polling fallback for real-time)
+  // Fetch messages once and rely on realtime for updates
   useEffect(() => {
     const fetchMessages = async () => {
       if (!user?.id || !isValidUUID(partnerId)) return;
@@ -559,7 +568,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         setMessages(data as Message[]);
         
         // Count unread messages
-  const unread = (data as Message[]).filter((msg: Message) => 
+        const unread = (data as Message[]).filter((msg: Message) => 
           msg.sender_id === partnerId && !msg.is_read
         ).length;
         setUnreadCount(unread);
@@ -567,17 +576,12 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         console.error('Error fetching messages:', error);
       }
     };
-    // initial fetch
+    
+    // Only fetch once on initial load
     fetchMessages();
-    // reduce polling frequency when realtime is connected
-    const pollMs = connectionStatus === 'connected' ? 10000 : 2000;
-    const id = setInterval(fetchMessages, pollMs);
-    return () => {
-      clearInterval(id);
-    };
-  }, [user?.id, partnerId, connectionStatus]);
+  }, [user?.id, partnerId]);
 
-  // Subscribe to new messages
+  // Subscribe to real-time messages with optimized performance
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
 
@@ -595,27 +599,36 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         },
         (payload) => {
           const msg = payload.new as Message;
+          
+          // Immediately add message to state for instant UI update
           setMessages((prev) => {
+            // Check for duplicates to avoid double-adding optimistic messages
             const existingIndex = prev.findIndex((m) => m.id === msg.id);
             if (existingIndex !== -1) {
+              // Update existing message (confirmed from server)
               const updated = [...prev];
               updated[existingIndex] = msg;
               return updated;
             }
+            // Add new message
             return [...prev, msg];
           });
-          // Flag the newest partner message for highlight and show FAB if scrolled up
+
+          // Handle partner messages immediately
           if (msg.sender_id === partnerId) {
             setLastNewMessageId(msg.id);
-          }
-          if (msg.sender_id === partnerId) {
             setUnreadCount(prev => prev + 1);
+            
+            // Instant notification sound
             if (!isMuted && notificationAudioRef.current) {
               notificationAudioRef.current.currentTime = 0;
               notificationAudioRef.current.play().catch(() => {});
             }
+            
+            // Auto-mark as read if chat is visible
             if (document.visibilityState === 'visible' && document.hasFocus()) {
-              markMessagesAsRead();
+              // Use requestAnimationFrame for immediate execution without blocking
+              requestAnimationFrame(() => markMessagesAsRead());
             }
           }
         }
@@ -630,14 +643,19 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         },
         (payload) => {
           const updatedMsg = payload.new as Message;
+          // Immediate state update for read receipts, etc.
           setMessages(prev => prev.map(msg => msg.id === updatedMsg.id ? updatedMsg : msg));
         }
       )
       .subscribe((status, err) => {
         console.log(`Message subscription status for channel ${channelName}:`, status, err);
-        if (status === 'SUBSCRIBED') setConnectionStatus('connected');
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setConnectionStatus('disconnected');
-        else setConnectionStatus('connecting');
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('connected');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+        } else {
+          setConnectionStatus('connecting');
+        }
       });
 
     return () => {
@@ -645,7 +663,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     };
   }, [user?.id, partnerId, isMuted, markMessagesAsRead]);
 
-  // Auto-scroll behavior: keep view at bottom when near it; show FAB when scrolled up
+  // Optimized auto-scroll behavior with immediate response
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -656,10 +674,10 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       return distance < threshold;
     };
 
-    // On new messages, scroll if user is near bottom
+    // On new messages, scroll immediately if user is near bottom
     if (nearBottom()) {
-      // Simple scroll to bottom without redundant calls
-      setTimeout(() => scrollToBottom(true), 50);
+      // Immediate scroll without delay for real-time feel
+      scrollToBottom(true);
       setShowScrollToBottom(false);
     } else {
       setShowScrollToBottom(true);
