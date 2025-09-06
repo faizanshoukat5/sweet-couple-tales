@@ -331,46 +331,33 @@ export const useMemories = () => {
     fetchMemories();
   }, [user]);
 
-  // Realtime updates for memories with debouncing to prevent excessive re-renders
+  // Realtime updates for memories: reflect inserts/updates/deletes instantly
   useEffect(() => {
     if (!user) return;
-
-    let updateTimeout: NodeJS.Timeout;
-    const debouncedUpdate = (updateFn: () => void) => {
-      clearTimeout(updateTimeout);
-      updateTimeout = setTimeout(updateFn, 100); // Debounce updates by 100ms
-    };
 
     const channel = supabase
       .channel('memories-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memories' }, (payload) => {
         const newMemory: any = (payload as any).new;
         if (!newMemory || newMemory.user_id !== user.id) return;
-        debouncedUpdate(() => {
-          setMemories((prev) => {
-            const filtered = prev.filter((m) => m.id !== newMemory.id);
-            return [newMemory, ...filtered];
-          });
+        setMemories((prev) => {
+          const filtered = prev.filter((m) => m.id !== newMemory.id);
+          return [newMemory, ...filtered];
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'memories' }, (payload) => {
         const updated: any = (payload as any).new;
         if (!updated || updated.user_id !== user.id) return;
-        debouncedUpdate(() => {
-          setMemories((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-        });
+        setMemories((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'memories' }, (payload) => {
         const oldRow: any = (payload as any).old;
         if (!oldRow) return;
-        debouncedUpdate(() => {
-          setMemories((prev) => prev.filter((m) => m.id !== oldRow.id));
-        });
+        setMemories((prev) => prev.filter((m) => m.id !== oldRow.id));
       })
       .subscribe();
 
     return () => {
-      clearTimeout(updateTimeout);
       try { supabase.removeChannel(channel); } catch {}
     };
   }, [user]);

@@ -155,46 +155,36 @@ const Dashboard = () => {
     return days;
   }, [memories]);
 
-  // Debounce search input more efficiently
+  // Debounce search input
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchTerm), 150);
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 250);
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  // Memoized filtered and sorted memories to prevent unnecessary recalculations
-  const filteredMemories = useMemo(() => {
-    let filtered = memories.filter(memory => {
-      const matchesSearch = !debouncedSearch || 
-        memory.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        memory.content?.toLowerCase().includes(debouncedSearch.toLowerCase());
-      
-      const matchesTag = !selectedTag || memory.tags.includes(selectedTag);
-      
-      return matchesSearch && matchesTag;
-    });
+  let filteredMemories = memories.filter(memory => {
+    const matchesSearch = !debouncedSearch || 
+      memory.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      memory.content?.toLowerCase().includes(debouncedSearch.toLowerCase());
+    
+    const matchesTag = !selectedTag || memory.tags.includes(selectedTag);
+    
+    return matchesSearch && matchesTag;
+  });
 
-    // Apply sort
-    return [...filtered].sort((a,b) => {
-      if (sortMode === 'favorites') {
-        if (a.is_favorite === b.is_favorite) return b.memory_date.localeCompare(a.memory_date);
-        return a.is_favorite ? -1 : 1;
-      }
-      if (sortMode === 'oldest') return a.memory_date.localeCompare(b.memory_date);
-      if (sortMode === 'date-asc') return a.memory_date.localeCompare(b.memory_date);
-      // newest default
-      return b.memory_date.localeCompare(a.memory_date);
-    });
-  }, [memories, debouncedSearch, selectedTag, sortMode]);
+  // Apply sort
+  filteredMemories = [...filteredMemories].sort((a,b) => {
+    if (sortMode === 'favorites') {
+      if (a.is_favorite === b.is_favorite) return b.memory_date.localeCompare(a.memory_date);
+      return a.is_favorite ? -1 : 1;
+    }
+    if (sortMode === 'oldest') return a.memory_date.localeCompare(b.memory_date);
+    if (sortMode === 'date-asc') return a.memory_date.localeCompare(b.memory_date);
+    // newest default
+    return b.memory_date.localeCompare(a.memory_date);
+  });
 
-  // Memoize expensive calculations
-  const favoriteMemories = useMemo(() => 
-    filteredMemories.filter(memory => memory.is_favorite), 
-    [filteredMemories]
-  );
-  const allTags = useMemo(() => 
-    [...new Set(memories.flatMap(memory => memory.tags))], 
-    [memories]
-  );
+  const favoriteMemories = filteredMemories.filter(memory => memory.is_favorite);
+  const allTags = [...new Set(memories.flatMap(memory => memory.tags))];
 
   // Debug: reset filters on mount once (in case stale state hid list)
   useEffect(() => {
