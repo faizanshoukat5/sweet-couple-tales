@@ -71,7 +71,7 @@ const SharedCalendar = () => {
   const selectedEvents = selected ? eventsByDay.get(selected.toDateString()) : undefined;
 
   return (
-    <div className="max-w-md mx-auto my-4 p-3 bg-white rounded shadow">
+    <div className="max-w-sm mx-auto my-3 p-2 bg-white rounded shadow-sm">
       <h2 className="text-lg font-semibold mb-2">Shared Calendar</h2>
       {loading ? (
         <div>Loading...</div>
