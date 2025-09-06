@@ -144,46 +144,30 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   const scrollToBottom = (smooth = true) => {
     const container = messagesContainerRef.current;
     const end = messagesEndRef.current;
-    const behavior: ScrollBehavior = smooth ? 'smooth' : 'auto';
 
     if (!container) {
-      try { end?.scrollIntoView({ behavior, block: 'end' }); } catch (_) { /* ignore */ }
+      try { 
+        end?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' }); 
+      } catch (_) { /* ignore */ }
       return;
     }
 
-    // Try multiple times across animation frames/timeouts to survive rendering/layout delays
-    let attempts = 0;
-    const maxAttempts = 8;
-
-    const doScroll = () => {
-      try {
-        // Prefer native smooth scroll on the container
-        if (typeof container.scrollTo === 'function') {
-          container.scrollTo({ top: container.scrollHeight, behavior });
-        } else {
-          container.scrollTop = container.scrollHeight;
-        }
-        // Extra safety: ensure the end marker is visible
-        end?.scrollIntoView({ behavior, block: 'end' });
-      } catch (_e) {
-        try { end?.scrollIntoView({ behavior, block: 'end' }); } catch (_e) { /* ignore */ }
+    // Simple, reliable scroll approach
+    try {
+      if (smooth) {
+        container.scrollTo({ 
+          top: container.scrollHeight, 
+          behavior: 'smooth' 
+        });
+      } else {
+        container.scrollTop = container.scrollHeight;
       }
-
-      attempts++;
-      if (attempts < maxAttempts) {
-        // Check if we're actually at the bottom, retry if not
-        const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 10;
-        if (!isAtBottom) {
-          if (attempts < 4) {
-            requestAnimationFrame(doScroll);
-          } else {
-            setTimeout(doScroll, 50);
-          }
-        }
-      }
-    };
-
-    doScroll();
+    } catch (_) {
+      // Fallback for older browsers
+      try { 
+        end?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' }); 
+      } catch (_) { /* ignore */ }
+    }
   };
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
@@ -527,9 +511,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       ...(replyToMessage ? { reply_to: replyToMessage.id } : {}),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
-    // Immediate scroll to bottom for sent message (WhatsApp-like)
-    scrollToBottom(false); // No smooth for immediate effect
-    setTimeout(() => scrollToBottom(true), 50); // Then smooth
+    // Single scroll to bottom for sent message
+    setTimeout(() => scrollToBottom(true), 100);
     setNewMessage("");
     setReplyToMessage(null);
 
@@ -548,8 +531,6 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         .single();
       if (error) throw error;
       setMessages(prev => prev.map(msg => (msg.id === tempId ? { ...(data as Message) } : msg)));
-      // Ensure final confirmed message is visible
-      setTimeout(() => scrollToBottom(true), 30);
     } catch (error) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       toast({ title: "Failed to send message", description: "Please try again.", variant: "destructive" });
@@ -677,13 +658,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
 
     // On new messages, scroll if user is near bottom
     if (nearBottom()) {
-      // Use setTimeout to ensure DOM is fully rendered before scrolling
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-          setShowScrollToBottom(false);
-        }
-      }, 100);
+      // Simple scroll to bottom without redundant calls
+      setTimeout(() => scrollToBottom(true), 50);
+      setShowScrollToBottom(false);
     } else {
       setShowScrollToBottom(true);
     }
@@ -1766,7 +1743,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
                 )}
                 value={newMessage}
                 onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
-                onFocus={() => setTimeout(() => scrollToBottom(false), 60)}
+                onFocus={() => {}} // Removed auto-scroll on focus to prevent fluctuation
                 autoCorrect="on"
                 autoCapitalize="sentences"
               />
