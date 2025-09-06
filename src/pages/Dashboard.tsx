@@ -670,13 +670,7 @@ const Dashboard = () => {
           </CardContent>
          </Card>
 
-        {/* Memory Debug Info */}
-        <div className="mb-4 text-xs text-rose-500/70 font-mono space-y-1">
-          <div>memories: {memories.length} | filtered: {filteredMemories.length} | favorites: {favoriteMemories.length}</div>
-          {memories.length > 0 && (
-            <div className="truncate">titles: {memories.map(m=>m.title).join(' • ')}</div>
-          )}
-        </div>
+  {/* Memory Debug Info (removed for production) */}
         {/* Memory Tabs */}
   <SectionCard
           id="memories"
