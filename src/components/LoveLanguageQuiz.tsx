@@ -85,6 +85,7 @@ const CustomQuizResultsForMyQuizzes: React.FC = () => {
   );
 };
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import CustomQuizBuilder from './CustomQuizBuilder';
 import { CustomQuizAttempt } from './CustomQuizAttempt';
 import { useAuth } from '@/hooks/useAuth';
@@ -93,6 +94,8 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
+import LoveLanguageResultsChart from './LoveLanguageResultsChart';
+import './LoveLanguageQuizAnimations.css';
 
 // Default question pool for Love Language Quiz
 const QUESTIONS = [
@@ -522,46 +525,51 @@ export const LoveLanguageQuiz: React.FC<LoveLanguageQuizProps> = () => {
           {/* Show all quizzes I created and my partner's attempts */}
           <CustomQuizResultsForMyQuizzes />
           {!showResult ? (
-            <>
-              <div className="w-full text-left text-rose-400 text-xs mb-2">Question {step + 1} of {QUESTIONS.length}</div>
-              <h3 className="font-serif text-xl font-bold text-rose-600 mb-2">{QUESTIONS[step].question}</h3>
-              <div className="flex flex-col gap-2 w-full max-w-xs mx-auto">
-                {QUESTIONS[step].options.map(opt => (
-                  <Button key={opt.lang} variant="romantic" className="w-full" onClick={() => handleAnswer(opt.lang)}>
-                    {opt.text}
-                  </Button>
-                ))}
-              </div>
-              <div className="w-full h-2 bg-rose-100 rounded-full mt-4">
-                <div className="h-2 bg-rose-400 rounded-full transition-all" style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }} />
-              </div>
-            </>
-          ) : (
-            <>
-              <h3 className="font-serif text-2xl font-bold text-rose-600 mb-2">Your Love Language Results</h3>
-              <div className="flex flex-col gap-2 w-full max-w-xs mx-auto">
-                {Object.entries(answers.reduce((acc, lang) => {
-                  acc[lang] = (acc[lang] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]).map(([lang, score]) => (
-                  <div key={lang} className="flex items-center justify-between bg-white/80 rounded-lg px-4 py-2 text-rose-700 font-semibold">
-                    <span>{LANGUAGES[lang as keyof typeof LANGUAGES]}</span>
-                    <span>{score}</span>
+            <div className="relative w-full min-h-[220px]">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, x: 40, scale: 0.96 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -40, scale: 0.96 }}
+                  transition={{ duration: 0.45, ease: [0.16,0.84,0.44,1] }}
+                  className="quiz-step-animate w-full"
+                >
+                  <div className="w-full text-left text-rose-400 text-xs mb-2">Question {step + 1} of {QUESTIONS.length}</div>
+                  <h3 className="font-serif text-xl font-bold text-rose-600 mb-2">{QUESTIONS[step].question}</h3>
+                  <div className="flex flex-col gap-2 w-full max-w-xs mx-auto">
+                    {QUESTIONS[step].options.map(opt => (
+                      <Button key={opt.lang} variant="romantic" className="w-full" onClick={() => handleAnswer(opt.lang)}>
+                        {opt.text}
+                      </Button>
+                    ))}
                   </div>
-                ))}
-              </div>
+                  <div className="w-full h-2 bg-rose-100 rounded-full mt-4 overflow-hidden">
+                    <div className="h-2 bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }} />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          ) : (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="results-animate w-full"
+            >
+              <h3 className="font-serif text-2xl font-bold text-rose-600 mb-4">Your Love Language Results</h3>
+              <LoveLanguageResultsChart scores={scores} labels={LANGUAGES} primary={primary} secondary={secondary} />
               {primary && (
-                <div className="mt-4 p-4 bg-rose-50 rounded-xl border border-rose-100">
-                  <div className="text-lg font-bold text-rose-500 mb-1">Primary: {LANGUAGES[primary as keyof typeof LANGUAGES]}</div>
-                  <div className="text-rose-700 text-base mb-2">{DESCRIPTIONS[primary as keyof typeof DESCRIPTIONS]}</div>
+                <div className="mt-6 p-5 bg-white/70 backdrop-blur rounded-xl border border-rose-100 shadow-inner">
+                  <div className="text-lg font-bold text-rose-600 mb-1">Primary: {LANGUAGES[primary as keyof typeof LANGUAGES]}</div>
+                  <div className="text-rose-700 text-sm leading-relaxed mb-2">{DESCRIPTIONS[primary as keyof typeof DESCRIPTIONS]}</div>
                   {secondary && (
                     <div className="text-xs text-rose-400">Secondary: {LANGUAGES[secondary as keyof typeof LANGUAGES]}</div>
                   )}
                 </div>
               )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col gap-2 mt-4">
+              <div className="flex flex-col gap-2 mt-6">
                 <Button variant="romantic" disabled={saving} onClick={handleSaveResults}>
                   {saving ? 'Saving...' : 'Save Results'}
                 </Button>
@@ -584,7 +592,7 @@ export const LoveLanguageQuiz: React.FC<LoveLanguageQuizProps> = () => {
                   Retake Quiz
                 </Button>
               </div>
-            </>
+            </motion.div>
           )}
         </CardContent>
       </Card>
