@@ -158,6 +158,9 @@ const ParallaxHero = () => {
                     src={heroImage}
                     alt="Couple creating beautiful memories together"
                     className="w-full h-[500px] object-cover"
+                    fetchPriority="high"
+                    loading="eager"
+                    decoding="async"
                   />
                 </CardContent>
               </Card>
