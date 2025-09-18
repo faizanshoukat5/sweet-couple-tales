@@ -23,11 +23,14 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-select'],
           'animation': ['framer-motion'],
           'virtualization': ['react-window', 'react-virtualized-auto-sizer'],
-          'ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
           'charts': ['recharts'],
           'date': ['date-fns'],
+          'query': ['@tanstack/react-query'],
+          'supabase': ['@supabase/supabase-js'],
         }
       }
     }

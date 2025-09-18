@@ -1,16 +1,19 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, lazy } from "react";
 import ParallaxHero from "@/components/ParallaxHero";
 import ParallaxBackground from "@/components/ParallaxBackground";
 import ParallaxSection, { FeaturesBackground, TimelineBackground, CallToActionBackground } from "@/components/ParallaxSection";
 import AnimatedFeatures from "@/components/AnimatedFeatures";
-import InteractiveMemoryDemo from "@/components/InteractiveMemoryDemo";
-import Timeline from "@/components/Timeline";
-import HomeAlbumsPreview from "@/components/HomeAlbumsPreview";
 import CallToAction from "@/components/CallToAction";
-import FAQSection from "@/components/FAQSection";
-import TestimonialsSection from "@/components/TestimonialsSection";
 import StructuredData from "@/components/StructuredData";
+import LazySection from "@/components/LazySection";
+
+// Lazy load below-the-fold components
+const InteractiveMemoryDemo = lazy(() => import("@/components/InteractiveMemoryDemo"));
+const Timeline = lazy(() => import("@/components/Timeline"));
+const HomeAlbumsPreview = lazy(() => import("@/components/HomeAlbumsPreview"));
+const FAQSection = lazy(() => import("@/components/FAQSection"));
+const TestimonialsSection = lazy(() => import("@/components/TestimonialsSection"));
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -71,24 +74,34 @@ const Index = () => {
         </ParallaxSection>
         
         <ParallaxSection>
-          <InteractiveMemoryDemo />
+          <LazySection>
+            <InteractiveMemoryDemo />
+          </LazySection>
         </ParallaxSection>
         
-        <TestimonialsSection />
+        <LazySection>
+          <TestimonialsSection />
+        </LazySection>
         
         <ParallaxSection backgroundElements={<TimelineBackground />}>
-          <Timeline />
+          <LazySection>
+            <Timeline />
+          </LazySection>
         </ParallaxSection>
         
         <ParallaxSection>
-          <HomeAlbumsPreview />
+          <LazySection>
+            <HomeAlbumsPreview />
+          </LazySection>
         </ParallaxSection>
         
         <ParallaxSection backgroundElements={<CallToActionBackground />}>
           <CallToAction />
         </ParallaxSection>
         
-        <FAQSection />
+        <LazySection>
+          <FAQSection />
+        </LazySection>
       </main>
     </div>
   );

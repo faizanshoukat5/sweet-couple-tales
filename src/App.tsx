@@ -3,17 +3,26 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import CycleTracker from './pages/CycleTracker';
 import { AuthProvider } from "@/hooks/useAuth";
 import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import FAQPage from "./pages/FAQ";
+import { Suspense, lazy } from "react";
+
+// Lazy load route components that aren't needed immediately
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CycleTracker = lazy(() => import("./pages/CycleTracker"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const FAQPage = lazy(() => import("./pages/FAQ"));
 
 const queryClient = new QueryClient();
+
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,16 +32,18 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Navigation />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/cycle" element={<CycleTracker />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/faq" element={<FAQPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/cycle" element={<CycleTracker />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/faq" element={<FAQPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
