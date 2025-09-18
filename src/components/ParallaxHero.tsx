@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import ParallaxContainer from "./ParallaxContainer";
 import heroImage from "@/assets/hero-romantic.jpg";
-import heartFlowers from '/heart-flowerss.png';
+import heartFlowers from '/heart-flowers-optimized.png';
 import '../styles/parallax.css';
 
 const ParallaxHero = () => {
@@ -81,6 +81,8 @@ const ParallaxHero = () => {
                   src={heartFlowers} 
                   alt="Heart" 
                   className="w-12 h-12 animate-heart-float"
+                  loading="lazy"
+                  decoding="async"
                 />
               </ParallaxContainer>
               <h1 className="font-serif text-5xl lg:text-7xl font-bold text-foreground">
