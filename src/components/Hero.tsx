@@ -32,7 +32,7 @@ const Hero = () => {
             <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
               <img 
                 src={heartFlowers} 
-                alt="Heart" 
+                alt="CoupleConnect logo" 
                 className="w-12 h-12 animate-heart-float"
               />
               <h1 className="font-serif text-5xl lg:text-7xl font-bold text-foreground">

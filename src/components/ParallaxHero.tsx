@@ -77,11 +77,11 @@ const ParallaxHero = () => {
               className={`flex items-center justify-center lg:justify-start gap-3 scroll-reveal ${titleVisible ? 'revealed' : ''}`}
             >
               <ParallaxContainer speed={0.2} direction="up">
-                <img 
-                  src={heartFlowers} 
-                  alt="Heart" 
-                  className="w-12 h-12 animate-heart-float"
-                />
+                 <img 
+                   src={heartFlowers} 
+                   alt="CoupleConnect logo" 
+                   className="w-12 h-12 animate-heart-float"
+                 />
               </ParallaxContainer>
               <h1 className="font-serif text-5xl lg:text-7xl font-bold text-foreground">
                 Couple

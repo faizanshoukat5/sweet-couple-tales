@@ -159,7 +159,7 @@ const Auth = () => {
         <div className="hidden md:block">
           <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-sm border border-border/50 p-8 shadow-romantic">
             <div className="flex items-center gap-3 mb-6">
-              <img src={heartFlowers} alt="Heart" className="w-12 h-12 animate-heart-float" />
+              <img src={heartFlowers} alt="CoupleConnect logo" className="w-12 h-12 animate-heart-float" />
               <h1 className="font-serif text-4xl font-bold text-foreground">Couple<span className="text-primary">Connect</span></h1>
             </div>
             <ul className="space-y-4 text-muted-foreground">
@@ -173,7 +173,7 @@ const Auth = () => {
         <div>
           <div className="text-center mb-6 md:hidden">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <img src={heartFlowers} alt="Heart" className="w-10 h-10 animate-heart-float" />
+              <img src={heartFlowers} alt="CoupleConnect logo" className="w-10 h-10 animate-heart-float" />
               <h1 className="font-serif text-3xl font-bold text-foreground">Couple<span className="text-primary">Connect</span></h1>
             </div>
             <p className="text-muted-foreground">Create your beautiful love story journal</p>
