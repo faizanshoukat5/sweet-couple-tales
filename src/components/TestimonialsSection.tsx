@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { Star, Heart, Users, Quote, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const testimonials = [
   {
@@ -70,8 +72,18 @@ const testimonials = [
 const TestimonialsSection = () => {
   const { ref: titleRef, isVisible: titleVisible } = useScrollReveal();
   const { ref: cardsRef, isVisible: cardsVisible } = useScrollReveal();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCount, setVisibleCount] = useState(3);
+
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   useEffect(() => {
     const updateVisibleCount = () => {
@@ -316,8 +328,9 @@ const TestimonialsSection = () => {
               variant="romantic" 
               size="lg" 
               className="font-semibold px-8 py-3 hover:scale-105 transition-transform"
+              onClick={handleGetStarted}
             >
-              Start Your Journey Today
+              {user ? 'Go to Dashboard' : 'Start Your Journey Today'}
             </Button>
           </div>
         </div>
