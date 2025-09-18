@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -81,53 +81,65 @@ export type Database = {
       }
       albums: {
         Row: {
+          cover_photo: string | null
           created_at: string | null
           description: string | null
           id: string
           name: string
+          order: number | null
           user_id: string | null
         }
         Insert: {
+          cover_photo?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
+          order?: number | null
           user_id?: string | null
         }
         Update: {
+          cover_photo?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
+          order?: number | null
           user_id?: string | null
         }
         Relationships: []
       }
       couples: {
         Row: {
+          created_at: string | null
           id: string
           requested_at: string
           requested_by: string
           responded_at: string | null
           status: string
+          updated_at: string | null
           user1_id: string
           user2_id: string
         }
         Insert: {
+          created_at?: string | null
           id?: string
           requested_at?: string
           requested_by: string
           responded_at?: string | null
           status?: string
+          updated_at?: string | null
           user1_id: string
           user2_id: string
         }
         Update: {
+          created_at?: string | null
           id?: string
           requested_at?: string
           requested_by?: string
           responded_at?: string | null
           status?: string
+          updated_at?: string | null
           user1_id?: string
           user2_id?: string
         }
@@ -424,6 +436,7 @@ export type Database = {
       memories: {
         Row: {
           content: string | null
+          cover_photo: string | null
           created_at: string
           id: string
           is_favorite: boolean | null
@@ -436,6 +449,7 @@ export type Database = {
         }
         Insert: {
           content?: string | null
+          cover_photo?: string | null
           created_at?: string
           id?: string
           is_favorite?: boolean | null
@@ -448,6 +462,7 @@ export type Database = {
         }
         Update: {
           content?: string | null
+          cover_photo?: string | null
           created_at?: string
           id?: string
           is_favorite?: boolean | null
@@ -549,52 +564,68 @@ export type Database = {
         }
         Relationships: []
       }
-      period_cycles: {
+      period_cycle_logs: {
         Row: {
-          id: string
-          user_id: string
-          cycle_start_date: string
-          cycle_length: number
-          period_length: number
-          symptoms: string[]
-          mood: string | null
-          notes: string | null
           created_at: string
-          updated_at: string
+          id: string
+          owner_id: string
+          partner_id: string
+          period_start: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          cycle_start_date: string
-          cycle_length: number
-          period_length: number
-          symptoms?: string[]
-          mood?: string | null
-          notes?: string | null
           created_at?: string
-          updated_at?: string
+          id?: string
+          owner_id: string
+          partner_id: string
+          period_start: string
         }
         Update: {
+          created_at?: string
           id?: string
-          user_id?: string
-          cycle_start_date?: string
+          owner_id?: string
+          partner_id?: string
+          period_start?: string
+        }
+        Relationships: []
+      }
+      period_cycles: {
+        Row: {
+          created_at: string | null
+          cycle_length: number
+          cycle_start_date: string
+          id: string
+          mood: string | null
+          notes: string | null
+          period_length: number
+          symptoms: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
           cycle_length?: number
-          period_length?: number
-          symptoms?: string[]
+          cycle_start_date: string
+          id?: string
           mood?: string | null
           notes?: string | null
-          created_at?: string
-          updated_at?: string
+          period_length?: number
+          symptoms?: string[] | null
+          updated_at?: string | null
+          user_id: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "period_cycles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Update: {
+          created_at?: string | null
+          cycle_length?: number
+          cycle_start_date?: string
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          period_length?: number
+          symptoms?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
