@@ -20,6 +20,7 @@ import {
 
 const DemoShowcase = () => {
   const [currentDemo, setCurrentDemo] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const demoMemories = [
     {
@@ -75,6 +76,41 @@ const DemoShowcase = () => {
     { id: 2, title: "Learn to Cook Together 👨‍🍳", completed: false, progress: 40 },
     { id: 3, title: "Run a 5K Together 🏃‍♀️", completed: true, progress: 100 }
   ];
+
+  const demoAlbums = [
+    {
+      id: 1,
+      title: "Our Amazing Dates 💕",
+      description: "A collection of all our wonderful dates and adventures together",
+      photos: 24,
+      coverPhoto: "🌸"
+    },
+    {
+      id: 2,
+      title: "Santorini Adventure 🇬🇷", 
+      description: "Our unforgettable romantic getaway to the Greek islands",
+      photos: 156,
+      coverPhoto: "🌅"
+    },
+    {
+      id: 3,
+      title: "Everyday Magic ✨",
+      description: "The little moments that make our love story special", 
+      photos: 89,
+      coverPhoto: "💑"
+    }
+  ];
+
+  const demoMoods = [
+    { id: 1, mood: "😍", label: "In Love", intensity: 5, notes: "Alex surprised me with flowers today!", author: "Emma", date: "Today 9:30 AM" },
+    { id: 2, mood: "🎉", label: "Excited", intensity: 4, notes: "Our presentation went amazing!", author: "Alex", date: "Today 3:00 PM" },
+    { id: 3, mood: "🥰", label: "Grateful", intensity: 5, notes: "Reflecting on how lucky I am to have Alex in my life.", author: "Emma", date: "Yesterday 9:45 PM" }
+  ];
+
+  const handleTryDemo = (featureId: string) => {
+    setCurrentDemo(featureId);
+    setActiveTab("demo");
+  };
 
   const demoFeatures = [
     {
@@ -236,6 +272,70 @@ const DemoShowcase = () => {
           </div>
         );
       
+      case "albums":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Photo Albums</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {demoAlbums.map((album) => (
+                <Card key={album.id} className="hover:shadow-md transition-shadow cursor-pointer group">
+                  <CardContent className="pt-4">
+                    <div className="aspect-video bg-gradient-to-br from-pink-100 to-purple-100 rounded-lg flex items-center justify-center mb-3 text-6xl group-hover:scale-105 transition-transform">
+                      {album.coverPhoto}
+                    </div>
+                    <h4 className="font-medium text-lg mb-2">{album.title}</h4>
+                    <p className="text-sm text-muted-foreground mb-3">{album.description}</p>
+                    <div className="flex justify-between items-center">
+                      <Badge variant="secondary">{album.photos} photos</Badge>
+                      <Button variant="ghost" size="sm" className="text-primary">
+                        View Album
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        );
+      
+      case "mood":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Mood Tracking</h3>
+            {demoMoods.map((moodEntry) => (
+              <Card key={moodEntry.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-4">
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl">{moodEntry.mood}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium">{moodEntry.label}</h4>
+                        <div className="flex items-center gap-1">
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <div
+                                key={i}
+                                className={`w-2 h-2 rounded-full mr-1 ${
+                                  i < moodEntry.intensity ? "bg-primary" : "bg-muted"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">"{moodEntry.notes}"</p>
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>By {moodEntry.author}</span>
+                        <span>{moodEntry.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        );
+      
       default:
         return (
           <div className="text-center py-8">
@@ -276,7 +376,7 @@ const DemoShowcase = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Feature Overview</TabsTrigger>
           <TabsTrigger value="demo">Live Demo</TabsTrigger>
@@ -299,7 +399,7 @@ const DemoShowcase = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentDemo(feature.id)}
+                      onClick={() => handleTryDemo(feature.id)}
                       className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                     >
                       <Play className="w-4 h-4 mr-2" />
