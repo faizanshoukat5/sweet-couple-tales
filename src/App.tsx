@@ -10,6 +10,7 @@ import { Suspense, lazy } from "react";
 
 // Lazy load route components that aren't needed immediately
 const Auth = lazy(() => import("./pages/Auth"));
+const Demo = lazy(() => import("./pages/Demo"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CycleTracker = lazy(() => import("./pages/CycleTracker"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -36,6 +37,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/demo" element={<Demo />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/cycle" element={<CycleTracker />} />
               <Route path="/settings" element={<Settings />} />

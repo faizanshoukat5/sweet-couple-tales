@@ -54,6 +54,16 @@ const CallToAction = () => {
                   variant="outline" 
                   size="lg" 
                   className="text-lg px-10 py-6 border-primary text-primary hover:bg-primary hover:text-white hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group"
+                  onClick={() => navigate('/demo')}
+                >
+                  <span className="group-hover:animate-pulse">
+                    🚀 Try Interactive Demo
+                  </span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="lg" 
+                  className="text-lg px-10 py-6 hover:bg-primary/10 hover:scale-105 transition-all duration-300 group"
                   onClick={handleViewMemories}
                 >
                   <span className="group-hover:animate-pulse">
