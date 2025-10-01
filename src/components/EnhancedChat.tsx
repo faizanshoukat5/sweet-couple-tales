@@ -810,10 +810,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       window.removeEventListener('load', handleLoad);
     };
   }, []);
-  // Enhanced Header
   const Header = () => {
     return (
-  <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm border-bling">
+  <header className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm border-bling flex-shrink-0">
         <div className="flex items-center gap-3 flex-1">
           {isMobile && (
             <Button
@@ -1044,10 +1043,11 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     <div
       className={cn(
         "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
-        isMobile ? "h-full min-h-0 rounded-none w-full" : "h-full max-h-[600px] rounded-xl shadow-lg",
-        isFullscreen && "fixed inset-0 z-50 rounded-none"
+        isMobile 
+          ? "h-full min-h-0 rounded-none w-full" 
+          : "h-[600px] max-h-[600px] rounded-xl shadow-lg",
+        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-screen !max-h-screen"
       )}
-      style={isFullscreen ? { height: '100svh', minHeight: '100svh', maxHeight: '100svh' } : undefined}
     >
       {/* Cute animated emoji border overlay (non-interactive) */}
       {themePack !== 'off' && (
@@ -1406,21 +1406,21 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         </aside>
       </div>
       {/* Messages Container */}
-    <div 
+      <div 
         ref={messagesContainerRef} 
         className={cn(
-      "flex-1 overflow-y-auto overflow-x-hidden border-bling-top",
-          isMobile ? "px-2 py-3" : "px-4 py-4",
-          "min-h-0" // Ensure flex child can shrink
+          "flex-1 overflow-y-auto overflow-x-hidden border-bling-top min-h-0",
+          isMobile ? "px-2 py-3" : "px-4 py-4"
         )}
         style={{
           background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%)',
           scrollbarWidth: 'thin',
           scrollbarColor: 'rgba(0,0,0,0.2) transparent',
-          // Ensure proper scrolling isolation
           position: 'relative',
           overscrollBehavior: 'contain',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          flex: '1 1 0%',
+          height: 0
         }}
       >
         {messages.length === 0 ? (
@@ -1676,7 +1676,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       </div>
       {/* Enhanced Input Section */}
       <footer className={cn(
-        "border-t bg-card/80 backdrop-blur-lg flex-shrink-0 relative z-10",
+        "border-t bg-card/80 backdrop-blur-lg flex-shrink-0 relative z-10 flex-none",
         isMobile ? "p-2 pb-[max(10px,env(safe-area-inset-bottom))]" : "p-4"
       )}>
         {/* Reply Preview */}
