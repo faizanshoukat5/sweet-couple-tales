@@ -68,7 +68,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
     <aside
       ref={panelRef}
       className={
-        'fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full bg-white rounded-l-2xl shadow-2xl border-l border-rose-100 flex flex-col transition-transform duration-300 ease-in-out ' +
+        'fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full bg-white rounded-l-2xl shadow-2xl border-l border-rose-100 flex flex-col transition-transform duration-300 ease-in-out overflow-hidden ' +
         (open ? 'translate-x-0' : 'translate-x-full')
       }
       role="dialog"
@@ -79,7 +79,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
         <h3 className="font-serif text-lg font-bold text-rose-600 flex items-center gap-2"><Heart className="w-5 h-5" /> Chat</h3>
         <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8" aria-label="Close chat">✕</Button>
       </div>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden w-full h-full">
         {partnerId === undefined ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

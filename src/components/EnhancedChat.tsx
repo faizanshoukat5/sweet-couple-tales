@@ -1042,9 +1042,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   return (
     <div
       className={cn(
-        "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
+        "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle w-full",
         isMobile 
-          ? "h-full min-h-0 rounded-none w-full" 
+          ? "h-full min-h-0 rounded-none" 
           : "h-[600px] max-h-[600px] rounded-xl shadow-lg",
         isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-screen !max-h-screen"
       )}
