@@ -65,42 +65,56 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
   }, [open, onClose]);
 
   return (
-    <aside
-      ref={panelRef}
-      className={
-        'fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full bg-white rounded-l-2xl shadow-2xl border-l border-rose-100 flex flex-col transition-transform duration-300 ease-in-out overflow-hidden ' +
-        (open ? 'translate-x-0' : 'translate-x-full')
-      }
-      role="dialog"
-      aria-modal="true"
-      tabIndex={-1}
-    >
-      <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-rose-50 to-pink-50 rounded-tl-2xl shadow-sm">
-        <h3 className="font-serif text-lg font-bold text-rose-600 flex items-center gap-2"><Heart className="w-5 h-5" /> Chat</h3>
-        <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8" aria-label="Close chat">✕</Button>
-      </div>
-      <div className="flex-1 overflow-hidden w-full h-full">
-        {partnerId === undefined ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            Looking for your partner...
-          </div>
-        ) : !partnerId ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
-            <Heart className="w-16 h-16 text-muted-foreground" />
-            <div>
-              <h3 className="text-lg font-semibold mb-2">No Partner Connected</h3>
-              <p className="text-muted-foreground mb-4">Complete your profile setup and select your partner to start chatting together!</p>
-              <Button variant="romantic" onClick={() => { onClose(); setShowProfileSetup(true); }}>
-                <User className="w-4 h-4 mr-2" /> Setup Profile & Partner
-              </Button>
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      
+      {/* Panel */}
+      <aside
+        ref={panelRef}
+        className={
+          'fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full bg-white rounded-l-2xl shadow-2xl border-l border-rose-100 flex flex-col transition-transform duration-300 ease-in-out overflow-hidden ' +
+          (open ? 'translate-x-0' : 'translate-x-full')
+        }
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-rose-50 to-pink-50 rounded-tl-2xl shadow-sm flex-shrink-0">
+          <h3 className="font-serif text-lg font-bold text-rose-600 flex items-center gap-2"><Heart className="w-5 h-5" /> Chat</h3>
+          <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8" aria-label="Close chat">✕</Button>
+        </div>
+        <div className="flex-1 overflow-hidden w-full min-h-0">
+          {partnerId === undefined ? (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              Looking for your partner...
             </div>
-          </div>
-        ) : (
-          <EnhancedChat partnerId={partnerId} />
-        )}
-      </div>
-    </aside>
+          ) : !partnerId ? (
+            <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+              <Heart className="w-16 h-16 text-muted-foreground" />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">No Partner Connected</h3>
+                <p className="text-muted-foreground mb-4">Complete your profile setup and select your partner to start chatting together!</p>
+                <Button variant="romantic" onClick={() => { onClose(); setShowProfileSetup(true); }}>
+                  <User className="w-4 h-4 mr-2" /> Setup Profile & Partner
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full">
+              <EnhancedChat partnerId={partnerId} />
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
 

@@ -1042,11 +1042,11 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   return (
     <div
       className={cn(
-        "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle w-full",
+        "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
         isMobile 
-          ? "h-full min-h-0 rounded-none" 
-          : "h-[600px] max-h-[600px] rounded-xl shadow-lg",
-        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-screen !max-h-screen"
+          ? "h-full w-full min-h-0 rounded-none" 
+          : "h-full w-full rounded-none",
+        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-screen !max-h-screen !w-screen"
       )}
     >
       {/* Cute animated emoji border overlay (non-interactive) */}
