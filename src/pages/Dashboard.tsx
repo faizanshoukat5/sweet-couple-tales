@@ -69,7 +69,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
       {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
+          className="fixed inset-0 bg-black/50 z-[100] transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -79,7 +79,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
       <aside
         ref={panelRef}
         className={
-          'fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] max-w-full bg-white rounded-l-2xl shadow-2xl border-l border-rose-100 flex flex-col transition-transform duration-300 ease-in-out overflow-hidden ' +
+          'fixed inset-y-0 right-0 z-[101] w-full sm:w-[420px] max-w-full bg-background dark:bg-card rounded-l-2xl shadow-2xl border-l border-border flex flex-col transition-transform duration-300 ease-in-out overflow-hidden ' +
           (open ? 'translate-x-0' : 'translate-x-full')
         }
         role="dialog"
