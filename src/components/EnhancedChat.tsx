@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, Send, Check, CheckCheck, Circle, Smile, Paperclip, Mic, Reply, Image, FileText, Download, MoreVertical, ArrowLeft, Info, Bell, BellOff, Trash2, ChevronDown } from "lucide-react";
 import "./EnhancedChatAnimations.css";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
 import { AttachmentUpload, AttachmentDisplay } from './AttachmentUpload';
@@ -873,16 +874,24 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         {/* Header Actions (clean, minimal) */}
         <div className="flex items-center">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
-                title="Chat options"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="end">
+                  <p>Chat options</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuItem onClick={() => setShowChatInfo((v) => !v)}>
                 <Info className="mr-2 h-4 w-4" />
@@ -970,34 +979,70 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
 
     if (msg.id.startsWith('temp-')) {
       return (
-        <span title="Sending..." className="inline-flex items-center gap-1">
-          <Circle className="w-3 h-3 text-muted-foreground/50" />
-          <span className="sr-only">Sending...</span>
-        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1">
+                <Circle className="w-3 h-3 text-muted-foreground/50" />
+                <span className="sr-only">Sending...</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="end">
+              <p>Sending...</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
     if (msg.read_at) {
       return (
-        <span title="Read" className="inline-flex items-center gap-1">
-          <CheckCheck className="w-3 h-3 text-primary drop-shadow-sm" />
-          <span className="text-xs text-primary font-semibold">Read</span>
-        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1">
+                <CheckCheck className="w-3 h-3 text-primary drop-shadow-sm" />
+                <span className="text-xs text-primary font-semibold">Read</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="end">
+              <p>Read</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     } else if (msg.delivered_at) {
       return (
-        <span title="Delivered" className="inline-flex items-center gap-1">
-          <CheckCheck className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
-          <span className="text-xs text-muted-foreground font-semibold">Delivered</span>
-        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1">
+                <CheckCheck className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
+                <span className="text-xs text-muted-foreground font-semibold">Delivered</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="end">
+              <p>Delivered</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
     return (
-      <span title="Sent" className="inline-flex items-center gap-1">
-        <Check className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
-        <span className="text-xs text-muted-foreground font-semibold">Sent</span>
-      </span>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center gap-1">
+              <Check className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
+              <span className="text-xs text-muted-foreground font-semibold">Sent</span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="end">
+            <p>Sent</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   };
 
@@ -1558,7 +1603,6 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
                           (msg.id === lastNewMessageId && msg.sender_id === partnerId) && "flash-recent"
                         )}
                         data-own={isOwn.toString()}
-                        title={new Date(msg.timestamp).toLocaleString()}
                       >
                         {/* Loading State for Temp Messages */}
                         {msg.id.startsWith('temp-') && (
@@ -1646,27 +1690,35 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
             {/* Scroll to bottom FAB */}
             {showScrollToBottom && (
               <div className="sticky bottom-4 flex justify-end pointer-events-none">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="pointer-events-auto shadow-md rounded-full px-3 py-2 bg-background/90 border backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:scale-105 transition-transform"
-                  onClick={() => {
-                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                    if (document.visibilityState === 'visible' && document.hasFocus()) {
-                      markMessagesAsRead();
-                    }
-                  }}
-                  title="Jump to latest"
-                >
-                  <div className="relative flex items-center gap-2">
-                    <ChevronDown className="w-4 h-4" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </div>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="pointer-events-auto shadow-md rounded-full px-3 py-2 bg-background/90 border backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:scale-105 transition-transform"
+                        onClick={() => {
+                          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                          if (document.visibilityState === 'visible' && document.hasFocus()) {
+                            markMessagesAsRead();
+                          }
+                        }}
+                      >
+                        <div className="relative flex items-center gap-2">
+                          <ChevronDown className="w-4 h-4" />
+                          {unreadCount > 0 && (
+                            <span className="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      <p>Jump to latest</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
           </div>
