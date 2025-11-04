@@ -1187,9 +1187,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         {/* Panel */}
     <aside
           className={cn(
-      "absolute right-0 top-0 h-full w-[88%] sm:w-[380px] bg-background border-l shadow-xl panel-gradient-border",
-            "transition-transform duration-300",
-            showChatInfo ? "translate-x-0" : "translate-x-full"
+      "absolute right-0 top-0 h-full w-[88%] sm:w-[380px] bg-background border-l shadow-xl",
+            "transition-transform duration-300 will-change-transform",
+            showChatInfo ? "translate-x-0 panel-gradient-border" : "translate-x-[calc(100%+3px)]"
           )}
           role="dialog"
           aria-label="Chat info"
