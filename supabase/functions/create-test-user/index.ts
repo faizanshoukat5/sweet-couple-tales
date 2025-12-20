@@ -17,15 +17,27 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    const { email, password } = await req.json()
+    const { email, password, userId } = await req.json()
 
-    console.log(`Creating test user: ${email}`)
+    let data, error
 
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    })
+    if (userId) {
+      // Update existing user's password
+      console.log(`Updating password for user: ${userId}`)
+      const result = await supabaseAdmin.auth.admin.updateUserById(userId, { password })
+      data = result.data
+      error = result.error
+    } else {
+      // Create new user
+      console.log(`Creating test user: ${email}`)
+      const result = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      })
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       console.error('Error creating user:', error)
