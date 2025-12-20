@@ -1,1 +1,4 @@
 project_id = "lrendbbxwrzoemyvftpa"
+
+[functions.create-test-user]
+verify_jwt = false
