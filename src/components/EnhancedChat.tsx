@@ -143,34 +143,25 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const scrollToBottom = (smooth = true) => {
-    const container = messagesContainerRef.current;
-    const end = messagesEndRef.current;
+  const scrollToBottom = useCallback((smooth = true) => {
+    // Use double RAF to ensure DOM has fully updated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const container = messagesContainerRef.current;
+        const end = messagesEndRef.current;
 
-    if (!container) {
-      try { 
-        end?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' }); 
-      } catch (_) { /* ignore */ }
-      return;
-    }
-
-    // Simple, reliable scroll approach
-    try {
-      if (smooth) {
-        container.scrollTo({ 
-          top: container.scrollHeight, 
-          behavior: 'smooth' 
-        });
-      } else {
-        container.scrollTop = container.scrollHeight;
-      }
-    } catch (_) {
-      // Fallback for older browsers
-      try { 
-        end?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' }); 
-      } catch (_) { /* ignore */ }
-    }
-  };
+        if (container) {
+          const scrollOptions: ScrollToOptions = {
+            top: container.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto'
+          };
+          container.scrollTo(scrollOptions);
+        } else if (end) {
+          end.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+        }
+      });
+    });
+  }, []);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
@@ -518,9 +509,6 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     setMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage("");
     setReplyToMessage(null);
-    
-    // Instant scroll without delay
-    scrollToBottom(true);
 
     try {
       const { data, error } = await supabase
@@ -664,26 +652,29 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     };
   }, [user?.id, partnerId, isMuted, markMessagesAsRead]);
 
-  // Optimized auto-scroll behavior with immediate response
-  useEffect(() => {
+  // Auto-scroll when messages change - always scroll to bottom for own messages
+  useLayoutEffect(() => {
+    if (messages.length === 0) return;
+    
     const container = messagesContainerRef.current;
     if (!container) return;
-
-    const nearBottom = () => {
-      const threshold = 120; // px
-      const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
-      return distance < threshold;
-    };
-
-    // On new messages, scroll immediately if user is near bottom
-    if (nearBottom()) {
-      // Immediate scroll without delay for real-time feel
+    
+    const lastMessage = messages[messages.length - 1];
+    const isOwnMessage = lastMessage?.sender_id === user?.id;
+    
+    // Calculate if user is near the bottom
+    const threshold = 150; // px from bottom
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isNearBottom = distanceFromBottom < threshold;
+    
+    // Always scroll for own messages, or if user is already near bottom
+    if (isOwnMessage || isNearBottom) {
       scrollToBottom(true);
       setShowScrollToBottom(false);
     } else {
       setShowScrollToBottom(true);
     }
-  }, [messages]);
+  }, [messages, user?.id, scrollToBottom]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
