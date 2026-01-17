@@ -293,12 +293,33 @@
 /* Mobile-specific optimizations */
 @media (max-width: 768px) {
   .animate-fade-slide-in {
-    animation-duration: 0.25s;
+    animation-duration: 0.2s;
+  }
+  
+  .animate-message-in {
+    animation-duration: 150ms;
+  }
+  
+  .message-bubble {
+    /* Smoother touch feedback */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   
   .message-bubble:active {
     transform: scale(0.98);
     transition: transform 0.1s ease-out;
+  }
+  
+  /* Better mobile scrolling */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Fix input zoom on iOS */
+  input[type="text"] {
+    font-size: 16px !important;
   }
 }
 
