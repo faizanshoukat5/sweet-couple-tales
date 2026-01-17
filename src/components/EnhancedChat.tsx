@@ -865,25 +865,17 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         {/* Header Actions (clean, minimal) */}
         <div className="flex items-center">
           <DropdownMenu>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align="end">
-                  <p>Chat options</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 h-8 w-8 rounded-full hover:bg-primary/10"
+                aria-label="Chat options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
               <DropdownMenuItem onClick={() => setShowChatInfo((v) => !v)}>
                 <Info className="mr-2 h-4 w-4" />
                 <span>Chat info</span>
