@@ -1072,10 +1072,15 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       className={cn(
         "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
         isMobile 
-          ? "h-full w-full min-h-0 rounded-none" 
+          ? "h-[100dvh] w-full min-h-0 rounded-none fixed inset-0 z-40" 
           : "h-full w-full rounded-none",
-        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-screen !max-h-screen !w-screen"
+        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-[100dvh] !max-h-[100dvh] !w-screen"
       )}
+      style={isMobile ? {
+        height: '100dvh',
+        maxHeight: '100dvh',
+        touchAction: 'pan-y'
+      } : undefined}
     >
       {/* Cute animated emoji border overlay (non-interactive) */}
       {themePack !== 'off' && (
@@ -1438,7 +1443,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         ref={messagesContainerRef} 
         className={cn(
           "flex-1 overflow-y-auto overflow-x-hidden border-bling-top min-h-0",
-          isMobile ? "px-2 py-3" : "px-4 py-4"
+          isMobile ? "px-3 py-2" : "px-4 py-4"
         )}
         style={{
           background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%)',
@@ -1447,8 +1452,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
           position: 'relative',
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
-          flex: '1 1 0%',
-          height: 0
+          flex: '1 1 auto',
+          minHeight: 0
         }}
       >
         {messages.length === 0 ? (
@@ -1511,7 +1516,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
                   <div className={cn(
                     "flex items-end gap-2 group relative",
                     isOwn ? "justify-end" : "justify-start",
-                    isMobile ? "mb-3" : "mb-2"
+                    isMobile ? "mb-2 px-1" : "mb-2"
                   )}>
                     {/* Avatar for received messages */}
                     {!isOwn && (
@@ -1528,9 +1533,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
                     {/* Message Content */}
                     <div
                       className={cn(
-                        "relative max-w-[85%] transition-all duration-200 ease-out cursor-pointer animate-message-in",
-                        isMobile ? "max-w-[75%]" : "max-w-[70%]",
-                        msg.id.startsWith('temp-') && "scale-95"
+                        "relative transition-all duration-200 ease-out cursor-pointer animate-message-in",
+                        isMobile ? "max-w-[80%]" : "max-w-[70%]",
+                        msg.id.startsWith('temp-') && "scale-[0.98] opacity-90"
                       )}
                       onTouchStart={(e) => handleMessageTouchStart(e, msg)}
                       onTouchMove={(e) => handleMessageTouchMove(e, msg)}
@@ -1711,9 +1716,13 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       </div>
       {/* Enhanced Input Section */}
       <footer className={cn(
-        "border-t bg-card/80 backdrop-blur-lg flex-shrink-0 relative z-10 flex-none",
-        isMobile ? "p-2 pb-[max(10px,env(safe-area-inset-bottom))]" : "p-4"
-      )}>
+        "border-t bg-card/95 backdrop-blur-lg flex-shrink-0 relative z-10",
+        isMobile 
+          ? "p-2 pb-[max(12px,env(safe-area-inset-bottom))]" 
+          : "p-4"
+      )}
+      style={isMobile ? { paddingBottom: 'max(12px, env(safe-area-inset-bottom))' } : undefined}
+      >
         {/* Reply Preview */}
         {replyToMessage && (
           <div className={cn(
