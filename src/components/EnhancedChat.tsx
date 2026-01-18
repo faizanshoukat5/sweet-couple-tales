@@ -1112,15 +1112,23 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       className={cn(
         "relative flex flex-col bg-background border border-border overflow-hidden gradient-border gradient-border--subtle",
         isMobile 
-          ? "h-[100dvh] w-full min-h-0 rounded-none fixed inset-0 z-40" 
+          ? "w-full rounded-none fixed inset-0 z-40" 
           : "h-full w-full rounded-none",
-        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-[100dvh] !max-h-[100dvh] !w-screen"
+        isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !w-screen"
       )}
-      style={isMobile ? {
-        height: visualViewportHeight ? `${visualViewportHeight}px` : '100dvh',
-        maxHeight: visualViewportHeight ? `${visualViewportHeight}px` : '100dvh',
-        touchAction: 'pan-y'
-      } : undefined}
+      style={{
+        ...(isMobile ? {
+          height: visualViewportHeight ? `${visualViewportHeight}px` : '100dvh',
+          maxHeight: visualViewportHeight ? `${visualViewportHeight}px` : '100dvh',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 'auto',
+          display: 'flex',
+          flexDirection: 'column' as const,
+          touchAction: 'pan-y'
+        } : {})
+      }}
     >
       {/* Cute animated emoji border overlay (non-interactive) */}
       {themePack !== 'off' && (
@@ -1482,7 +1490,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       <div 
         ref={messagesContainerRef} 
         className={cn(
-          "chat-messages flex-1 overflow-y-auto overflow-x-hidden border-bling-top min-h-0",
+          "chat-messages overflow-y-auto overflow-x-hidden border-bling-top",
           isMobile ? "px-3 py-2" : "px-4 py-4"
         )}
         style={{
@@ -1493,8 +1501,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
           scrollBehavior: 'auto',
-          flex: '1 1 auto',
-          minHeight: 0
+          flex: '1 1 0%',
+          minHeight: 0,
+          height: 0
         }}
       >
         {messages.length === 0 ? (
@@ -1756,13 +1765,15 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         <div ref={messagesEndRef} className="h-1" />
       </div>
       {/* Enhanced Input Section */}
-      <footer className={cn(
-        "border-t bg-card/95 backdrop-blur-lg flex-shrink-0 relative z-10",
-        isMobile 
-          ? "p-2 pb-[max(12px,env(safe-area-inset-bottom))]" 
-          : "p-4"
-      )}
-      style={isMobile ? { paddingBottom: 'max(12px, env(safe-area-inset-bottom))' } : undefined}
+      <footer 
+        className={cn(
+          "border-t bg-card/95 backdrop-blur-lg flex-shrink-0 relative z-20",
+          isMobile ? "p-3" : "p-4"
+        )}
+        style={isMobile ? { 
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+          minHeight: '60px'
+        } : undefined}
       >
         {/* Reply Preview */}
         {replyToMessage && (
@@ -1839,11 +1850,13 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
               <input
                 ref={inputRef}
                 type="text"
+                placeholder="Type a message..."
                 className={cn(
-                  "flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground",
+                  "flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground",
                   "focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
-                  isMobile ? "px-3 py-2.5" : "px-4 py-3"
+                  isMobile ? "px-4 py-3" : "px-4 py-3"
                 )}
+                style={{ fontSize: '16px' }} // Prevent iOS zoom on focus
                 value={newMessage}
                 onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
                 onFocus={() => {}} // Removed auto-scroll on focus to prevent fluctuation
