@@ -90,7 +90,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
           <h3 className="font-serif text-lg font-bold text-rose-600 flex items-center gap-2"><Heart className="w-5 h-5" /> Chat</h3>
           <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8" aria-label="Close chat">✕</Button>
         </div>
-        <div className="flex-1 overflow-hidden w-full min-h-0">
+        <div className="flex-1 overflow-hidden w-full min-h-0 flex flex-col">
           {partnerId === undefined ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -108,7 +108,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
               </div>
             </div>
           ) : (
-            <div className="w-full h-full">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <EnhancedChat partnerId={partnerId} />
             </div>
           )}
