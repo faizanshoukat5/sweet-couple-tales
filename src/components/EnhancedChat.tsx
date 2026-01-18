@@ -699,7 +699,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
 
     const onScroll = () => {
       const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
-      setShowScrollToBottom(distance > 160);
+      const shouldShow = distance > 160;
+      setShowScrollToBottom((prev) => (prev === shouldShow ? prev : shouldShow));
     };
 
     const onWheel = (e: WheelEvent) => {
@@ -1499,6 +1500,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
           scrollbarColor: 'rgba(0,0,0,0.2) transparent',
           position: 'relative',
           overscrollBehavior: 'contain',
+          overflowAnchor: 'none',
           WebkitOverflowScrolling: 'touch',
           scrollBehavior: 'auto',
           flex: '1 1 0%',
@@ -1727,7 +1729,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
             )}
             {/* Scroll to bottom FAB */}
             {showScrollToBottom && (
-              <div className="sticky bottom-4 flex justify-end pointer-events-none">
+              <div className="sticky bottom-4 flex justify-end pointer-events-none h-0 overflow-visible z-30">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
