@@ -311,10 +311,9 @@
     transition: transform 0.1s ease-out;
   }
   
-  /* Better mobile scrolling */
-  .overflow-y-auto {
+  /* Better mobile scrolling (avoid global smooth-scroll which can cause scroll-jumps) */
+  .chat-messages {
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
   }
   
   /* Fix input zoom on iOS */
