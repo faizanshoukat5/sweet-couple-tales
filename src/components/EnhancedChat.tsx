@@ -143,6 +143,10 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Mobile viewport (keyboard-safe height) + scroll meta
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+  const prevMessagesMetaRef = useRef<{ len: number; lastId: string | null }>({ len: 0, lastId: null });
+
   const scrollToBottom = useCallback((smooth = true) => {
     // Use double RAF to ensure DOM has fully updated
     requestAnimationFrame(() => {
@@ -652,22 +656,35 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     };
   }, [user?.id, partnerId, isMuted, markMessagesAsRead]);
 
-  // Auto-scroll when messages change - always scroll to bottom for own messages
+  // Auto-scroll when messages change (only for truly new messages)
   useLayoutEffect(() => {
     if (messages.length === 0) return;
-    
+
     const container = messagesContainerRef.current;
     if (!container) return;
-    
+
     const lastMessage = messages[messages.length - 1];
+    const lastId = lastMessage?.id ?? null;
+
+    // Prevent scroll-jumps on UPDATE events (read receipts, etc.)
+    const prev = prevMessagesMetaRef.current;
+    const didAppend = messages.length > prev.len;
+    const lastIdChanged = lastId !== prev.lastId;
+
+    // Always update meta
+    prevMessagesMetaRef.current = { len: messages.length, lastId };
+
+    // Only consider auto-scroll when a new message is appended or the tail message id changes
+    if (!didAppend && !lastIdChanged) return;
+
     const isOwnMessage = lastMessage?.sender_id === user?.id;
-    
+
     // Calculate if user is near the bottom
     const threshold = 150; // px from bottom
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     const isNearBottom = distanceFromBottom < threshold;
-    
-    // Always scroll for own messages, or if user is already near bottom
+
+    // Always scroll for own newly-sent messages, or if user is already near bottom
     if (isOwnMessage || isNearBottom) {
       scrollToBottom(true);
       setShowScrollToBottom(false);
@@ -706,6 +723,29 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       container.removeEventListener('touchmove', onTouchMove);
     };
   }, []);
+
+  // Keep chat usable when mobile keyboard is open (iOS/Android)
+  useEffect(() => {
+    if (!isMobile) {
+      setVisualViewportHeight(null);
+      return;
+    }
+    if (typeof window === 'undefined') return;
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => setVisualViewportHeight(Math.round(vv.height));
+    update();
+
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [isMobile]);
 
   // Subscribe to typing indicators (single channel reused for send/receive)
   useEffect(() => {
@@ -1077,8 +1117,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
         isFullscreen && "!fixed !inset-0 !z-50 !rounded-none !h-[100dvh] !max-h-[100dvh] !w-screen"
       )}
       style={isMobile ? {
-        height: '100dvh',
-        maxHeight: '100dvh',
+        height: visualViewportHeight ? `${visualViewportHeight}px` : '100dvh',
+        maxHeight: visualViewportHeight ? `${visualViewportHeight}px` : '100dvh',
         touchAction: 'pan-y'
       } : undefined}
     >
@@ -1442,7 +1482,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       <div 
         ref={messagesContainerRef} 
         className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden border-bling-top min-h-0",
+          "chat-messages flex-1 overflow-y-auto overflow-x-hidden border-bling-top min-h-0",
           isMobile ? "px-3 py-2" : "px-4 py-4"
         )}
         style={{
@@ -1452,6 +1492,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
           position: 'relative',
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'auto',
           flex: '1 1 auto',
           minHeight: 0
         }}
