@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { 
   X, 
@@ -196,17 +196,19 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const hasMultipleImages = images.length > 1;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        ref={containerRef}
-        className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black border-none overflow-hidden rounded-none"
-        onPointerDownOutside={onClose}
-      >
-        <DialogTitle className="sr-only">{alt}</DialogTitle>
-        <DialogDescription className="sr-only">
+    <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogPrimitive.Portal>
+        {/* Use very high z-index so lightbox always overlays chat */}
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[10000] bg-black" />
+        <DialogPrimitive.Content
+          ref={containerRef}
+          className="fixed inset-0 z-[10001] w-screen h-screen p-0 bg-black border-none overflow-hidden outline-none"
+        >
+        <DialogPrimitive.Title className="sr-only">{alt}</DialogPrimitive.Title>
+        <DialogPrimitive.Description className="sr-only">
           Use zoom controls or scroll to zoom. Drag to pan when zoomed. Press
           arrow keys to navigate.
-        </DialogDescription>
+        </DialogPrimitive.Description>
 
         {/* Top toolbar */}
         <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
@@ -357,8 +359,9 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
             ))}
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 };
 
