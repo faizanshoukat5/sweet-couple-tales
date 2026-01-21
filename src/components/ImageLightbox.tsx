@@ -199,7 +199,7 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         ref={containerRef}
-        className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none overflow-hidden"
+        className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black border-none overflow-hidden rounded-none"
         onPointerDownOutside={onClose}
       >
         <DialogTitle className="sr-only">{alt}</DialogTitle>
