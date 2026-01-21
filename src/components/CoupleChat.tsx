@@ -40,6 +40,7 @@ import { uploadVoiceMessage } from "@/utils/uploadVoiceMessage";
 import { getSignedChatAttachmentUrl } from "@/utils/getSignedChatAttachmentUrl";
 import { chatHaptics } from "@/utils/hapticFeedback";
 import { cn } from "@/lib/utils";
+import "./CoupleChat.css";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -227,7 +228,7 @@ const MessageBubble: React.FC<{
 
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl px-4 py-2 shadow-sm relative",
+          "message-bubble max-w-[75%] rounded-2xl px-4 py-2 shadow-sm relative",
           isOwn
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-card border border-border/50 rounded-bl-md"
@@ -367,6 +368,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   const userNearBottom = useRef(true);
   // Track if we've done the initial scroll
   const initialScrollDone = useRef(false);
+  const [mounted, setMounted] = useState(false);
 
   // ─── Scroll helpers ────────────────────────────────────────
   const scrollToBottom = useCallback((instant = false) => {
@@ -646,6 +648,12 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
     }
   }, [messages.length, scrollToBottom]);
 
+  // Mount animation trigger
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 20);
+    return () => clearTimeout(t);
+  }, []);
+
   // ─── Auto-scroll on new messages (only if near bottom) ─────
   useEffect(() => {
     if (messages.length === 0) return;
@@ -834,8 +842,9 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   return (
     <div
       className={cn(
-        "flex flex-col bg-background h-full w-full overflow-hidden",
-        isMobile ? "fixed inset-0 z-40" : "rounded-xl border shadow-sm"
+        "couple-chat flex flex-col bg-background h-full w-full overflow-hidden",
+        isMobile ? "fixed inset-0 z-40" : "rounded-xl border shadow-sm",
+        mounted && "chat-mounted"
       )}
     >
       {/* ─── Header ─────────────────────────────────────────── */}
@@ -1023,25 +1032,29 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
       )}
 
       {/* ─── Attachments / Voice area ───────────────────────── */}
-      {showAttachments && (
-        <div className="px-4 py-3 border-t bg-muted/30">
-          <AttachmentUpload
-            userId={user?.id || ""}
-            partnerId={partnerId}
-            onAttachmentUpload={handleAttachment}
-          />
+      <div className={cn("slide-panel overflow-hidden transition-panel border-t bg-muted/30", showAttachments ? "open" : "")}> 
+        <div className="px-4 py-3">
+          {showAttachments && (
+            <AttachmentUpload
+              userId={user?.id || ""}
+              partnerId={partnerId}
+              onAttachmentUpload={handleAttachment}
+            />
+          )}
         </div>
-      )}
-      {showVoice && (
-        <div className="px-4 py-3 border-t bg-muted/30">
-          <VoiceRecorder
-            onVoiceMessageSend={handleVoice}
-            onCancel={() => setShowVoice(false)}
-            isRecording={isRecording}
-            setIsRecording={setIsRecording}
-          />
+      </div>
+      <div className={cn("slide-panel overflow-hidden transition-panel border-t bg-muted/30", showVoice ? "open" : "")}> 
+        <div className="px-4 py-3">
+          {showVoice && (
+            <VoiceRecorder
+              onVoiceMessageSend={handleVoice}
+              onCancel={() => setShowVoice(false)}
+              isRecording={isRecording}
+              setIsRecording={setIsRecording}
+            />
+          )}
         </div>
-      )}
+      </div>
 
       {/* ─── Input footer ───────────────────────────────────── */}
       <footer className="border-t bg-card/95 backdrop-blur px-4 py-3 flex-shrink-0">

@@ -1,0 +1,25 @@
+.couple-chat{opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .25s ease}
+.couple-chat.chat-mounted{opacity:1;transform:none}
+
+/* message bubble subtle entrance */
+.message-bubble{opacity:0;transform:translateY(6px);transition:opacity .22s ease,transform .22s ease}
+/* when the chat container mounts, animate bubbles in */
+.couple-chat.chat-mounted .message-bubble{opacity:1;transform:none}
+.message-bubble.animate-in{opacity:1;transform:none}
+
+/* slide-panel for attachments/voice */
+.transition-panel{max-height:0;opacity:0;transition:max-height .28s ease,opacity .22s ease;padding:0}
+.transition-panel.open{max-height:420px;opacity:1;padding:12px 0}
+
+/* scroll to bottom FAB */
+.absolute .fab-smooth{transition:transform .18s cubic-bezier(.2,.9,.3,1),opacity .18s ease}
+
+/* buttons */
+button{transition:transform .12s ease,opacity .12s ease}
+button:active{transform:scale(.98)}
+
+/* subtle fade for header */
+header{transition:backdrop-filter .18s ease, background-color .18s ease}
+
+/* make message bubble hover smoother */
+.group-hover\:opacity-100{transition:opacity .14s ease}
