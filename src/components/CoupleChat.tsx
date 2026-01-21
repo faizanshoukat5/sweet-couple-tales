@@ -16,38 +16,26 @@ import {
   Mic,
   MoreVertical,
   ArrowLeft,
-  Info,
   Bell,
   BellOff,
-  Trash2,
   ChevronDown,
   X,
+  Image as ImageIcon,
+  FileText,
+  Download,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useToast } from "@/hooks/use-toast";
-import { AttachmentUpload, AttachmentDisplay } from "./AttachmentUpload";
+import { AttachmentUpload } from "./AttachmentUpload";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { VoicePlayer } from "./VoicePlayer";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "./ui/dialog";
+import ImageLightbox from "./ImageLightbox";
 import { uploadVoiceMessage } from "@/utils/uploadVoiceMessage";
 import { getSignedChatAttachmentUrl } from "@/utils/getSignedChatAttachmentUrl";
 import { chatHaptics } from "@/utils/hapticFeedback";
@@ -93,6 +81,12 @@ const formatTime = (timestamp: string) => {
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 };
 
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 // Hook to resolve storage paths to signed URLs
 const useSignedUrl = (raw?: string) => {
   const [url, setUrl] = useState<string | null>(null);
@@ -113,9 +107,16 @@ const useSignedUrl = (raw?: string) => {
 // ─────────────────────────────────────────────────────────────
 // Attachment display inside a message bubble
 // ─────────────────────────────────────────────────────────────
-const MessageAttachment: React.FC<{ msg: Message; isOwn: boolean }> = ({
+interface MessageAttachmentProps {
+  msg: Message;
+  isOwn: boolean;
+  onImageClick?: (url: string) => void;
+}
+
+const MessageAttachment: React.FC<MessageAttachmentProps> = ({
   msg,
   isOwn,
+  onImageClick,
 }) => {
   const signedUrl = useSignedUrl(msg.attachment_url);
   if (!msg.attachment_url) return null;
@@ -123,7 +124,8 @@ const MessageAttachment: React.FC<{ msg: Message; isOwn: boolean }> = ({
 
   if (!signedUrl && !msg.attachment_url.startsWith("http")) {
     return (
-      <div className="text-xs text-muted-foreground mb-2">
+      <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
         Loading attachment…
       </div>
     );
@@ -131,22 +133,22 @@ const MessageAttachment: React.FC<{ msg: Message; isOwn: boolean }> = ({
 
   if (msg.attachment_type === "image") {
     return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <img
-            src={urlToUse}
-            alt="attachment"
-            className="max-w-[200px] rounded-lg cursor-pointer mb-2"
-          />
-        </DialogTrigger>
-        <DialogContent className="max-w-3xl">
-          <DialogTitle className="sr-only">Image preview</DialogTitle>
-          <DialogDescription className="sr-only">
-            Preview of attached image
-          </DialogDescription>
-          <img src={urlToUse} alt="full" className="w-full h-auto" />
-        </DialogContent>
-      </Dialog>
+      <div
+        className="mb-2 cursor-pointer group relative overflow-hidden rounded-lg"
+        onClick={() => onImageClick?.(urlToUse)}
+      >
+        <img
+          src={urlToUse}
+          alt="attachment"
+          className="max-w-[220px] max-h-[280px] rounded-lg object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 backdrop-blur-sm rounded-full p-2">
+            <ImageIcon className="w-5 h-5 text-white" />
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -162,15 +164,38 @@ const MessageAttachment: React.FC<{ msg: Message; isOwn: boolean }> = ({
     );
   }
 
+  // Generic file attachment with better styling
   return (
     <a
       href={urlToUse}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-2 text-sm underline mb-2"
+      className={cn(
+        "flex items-center gap-3 p-3 rounded-lg mb-2 transition-colors",
+        isOwn
+          ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
+          : "bg-muted hover:bg-muted/80"
+      )}
     >
-      <Paperclip className="w-4 h-4" />
-      {msg.attachment_filename || msg.attachment_name || "Attachment"}
+      <div
+        className={cn(
+          "w-10 h-10 rounded-lg flex items-center justify-center",
+          isOwn ? "bg-primary-foreground/20" : "bg-primary/10"
+        )}
+      >
+        <FileText className={cn("w-5 h-5", isOwn ? "text-primary-foreground" : "text-primary")} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-sm font-medium truncate", isOwn ? "text-primary-foreground" : "text-foreground")}>
+          {msg.attachment_filename || msg.attachment_name || "Attachment"}
+        </p>
+        {msg.attachment_size && (
+          <p className={cn("text-xs", isOwn ? "text-primary-foreground/70" : "text-muted-foreground")}>
+            {formatFileSize(msg.attachment_size)}
+          </p>
+        )}
+      </div>
+      <Download className={cn("w-4 h-4", isOwn ? "text-primary-foreground/70" : "text-muted-foreground")} />
     </a>
   );
 };
@@ -184,7 +209,8 @@ const MessageBubble: React.FC<{
   onReply: () => void;
   replyPreview?: Message | null;
   userId?: string;
-}> = ({ msg, isOwn, onReply, replyPreview, userId }) => {
+  onImageClick?: (url: string) => void;
+}> = ({ msg, isOwn, onReply, replyPreview, userId, onImageClick }) => {
   return (
     <div
       className={cn(
@@ -226,7 +252,7 @@ const MessageBubble: React.FC<{
         )}
 
         {/* Attachment */}
-        <MessageAttachment msg={msg} isOwn={isOwn} />
+        <MessageAttachment msg={msg} isOwn={isOwn} onImageClick={onImageClick} />
 
         {/* Text */}
         {msg.content && !msg.content.startsWith("🎤") && (
@@ -323,6 +349,12 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   const [showAttachments, setShowAttachments] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+
+  // ─── Lightbox state ────────────────────────────────────────
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState("");
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // ─── Refs ──────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -761,6 +793,26 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
     return map;
   }, [messages]);
 
+  // ─── All image URLs for gallery navigation ─────────────────
+  const allImageUrls = useMemo(() => {
+    return messages
+      .filter((m) => m.attachment_type === "image" && m.attachment_url)
+      .map((m) => m.attachment_url!)
+      .filter((url) => url.startsWith("http") || url.length > 0);
+  }, [messages]);
+
+  // ─── Handle image click for lightbox ───────────────────────
+  const handleImageClick = useCallback(
+    (url: string) => {
+      setLightboxImage(url);
+      setLightboxImages(allImageUrls);
+      const idx = allImageUrls.indexOf(url);
+      setLightboxIndex(idx >= 0 ? idx : 0);
+      setLightboxOpen(true);
+    },
+    [allImageUrls]
+  );
+
   // ─── No partner selected ───────────────────────────────────
   if (!isValidUUID(partnerId)) {
     return (
@@ -893,6 +945,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
               onReply={() => setReplyTo(msg)}
               replyPreview={msg.reply_to ? msgMap[msg.reply_to] : null}
               userId={user?.id}
+              onImageClick={handleImageClick}
             />
           ))
         )}
@@ -1110,6 +1163,19 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
         src="/notification.mp3"
         preload="auto"
         className="hidden"
+      />
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        src={lightboxImage}
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        onNavigate={(idx) => {
+          setLightboxIndex(idx);
+          setLightboxImage(lightboxImages[idx] || "");
+        }}
       />
     </div>
   );
