@@ -24,7 +24,7 @@ import ImportantDates from '@/components/ImportantDates';
 import AlbumsList from '@/components/AlbumsList';
 import AlbumBrowser from '@/components/AlbumBrowser';
 import SharedCalendar from '@/components/SharedCalendar';
-import EnhancedChat from '@/components/EnhancedChat';
+import CoupleChat from '@/components/CoupleChat';
 import { useLocation } from 'react-router-dom';
 import { MoodTracker } from '@/components/MoodTracker';
 import { LoveNotesWidget } from '@/components/LoveNotesWidget';
@@ -109,7 +109,7 @@ function ChatSidePanel({ open, onClose, partnerId, setShowProfileSetup }) {
             </div>
           ) : (
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <EnhancedChat partnerId={partnerId} />
+              <CoupleChat partnerId={partnerId} />
             </div>
           )}
         </div>

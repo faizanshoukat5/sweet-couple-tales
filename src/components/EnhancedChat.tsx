@@ -146,24 +146,24 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   // Mobile viewport (keyboard-safe height) + scroll meta
   const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
   const prevMessagesMetaRef = useRef<{ len: number; lastId: string | null }>({ len: 0, lastId: null });
+  
+  // Simple scroll tracking - only track if user is at bottom
+  const isAtBottomRef = useRef(true);
+  const isInitialLoadRef = useRef(true);
+  const isUserScrollingRef = useRef(false);
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const scrollToBottom = useCallback((smooth = true) => {
-    // Use double RAF to ensure DOM has fully updated
+  // Force scroll to bottom - used for sending messages and initial load
+  const forceScrollToBottom = useCallback((smooth = true) => {
+    // Don't interrupt user scrolling
+    if (isUserScrollingRef.current) return;
+    
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const container = messagesContainerRef.current;
-        const end = messagesEndRef.current;
-
-        if (container) {
-          const scrollOptions: ScrollToOptions = {
-            top: container.scrollHeight,
-            behavior: smooth ? 'smooth' : 'auto'
-          };
-          container.scrollTo(scrollOptions);
-        } else if (end) {
-          end.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
-        }
-      });
+      const container = messagesContainerRef.current;
+      if (container && !isUserScrollingRef.current) {
+        container.scrollTop = container.scrollHeight;
+        isAtBottomRef.current = true;
+      }
     });
   }, []);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -530,7 +530,16 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       if (error) throw error;
       
       // Replace optimistic message with confirmed one
-      setMessages(prev => prev.map(msg => (msg.id === tempId ? { ...(data as Message) } : msg)));
+      setMessages(prev => {
+        // Check if the confirmed message is already in the list (via realtime)
+        const exists = prev.some(m => m.id === data.id);
+        if (exists) {
+          // If it strictly exists, just remove the temporary one
+          return prev.filter(m => m.id !== tempId);
+        }
+        // Otherwise replace temp with real
+        return prev.map(msg => (msg.id === tempId ? { ...(data as Message) } : msg));
+      });
     } catch (error) {
       // Remove failed message
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -603,6 +612,22 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
               updated[existingIndex] = msg;
               return updated;
             }
+
+            // Attempt to match optimistic message by content and approximately same time
+            if (msg.sender_id === user.id) {
+               const optimisticMatchIndex = prev.findIndex(m => 
+                 m.id.startsWith('temp-') && 
+                 m.content === msg.content &&
+                 Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 5000
+               );
+               if (optimisticMatchIndex !== -1) {
+                 // Replace optimistic with real
+                 const updated = [...prev];
+                 updated[optimisticMatchIndex] = msg;
+                 return updated;
+               }
+            }
+
             // Add new message
             return [...prev, msg];
           });
@@ -656,7 +681,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     };
   }, [user?.id, partnerId, isMuted, markMessagesAsRead]);
 
-  // Auto-scroll when messages change (only for truly new messages)
+  // Simple auto-scroll: only scroll on new messages if user is at bottom or sent the message
   useLayoutEffect(() => {
     if (messages.length === 0) return;
 
@@ -666,62 +691,95 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     const lastMessage = messages[messages.length - 1];
     const lastId = lastMessage?.id ?? null;
 
-    // Prevent scroll-jumps on UPDATE events (read receipts, etc.)
+    // Detect if this is a new message (not just an update like read receipts)
     const prev = prevMessagesMetaRef.current;
-    const didAppend = messages.length > prev.len;
-    const lastIdChanged = lastId !== prev.lastId;
-
-    // Always update meta
+    const isNewMessage = messages.length > prev.len || lastId !== prev.lastId;
+    
+    // Update tracking
     prevMessagesMetaRef.current = { len: messages.length, lastId };
 
-    // Only consider auto-scroll when a new message is appended or the tail message id changes
-    if (!didAppend && !lastIdChanged) return;
+    // Initial load - scroll to bottom immediately
+    if (isInitialLoadRef.current && messages.length > 0) {
+      isInitialLoadRef.current = false;
+      // Use multiple attempts to ensure scroll to bottom on initial load
+      const scrollToBottomInstantly = () => {
+        const cont = messagesContainerRef.current;
+        if (cont) {
+          cont.scrollTop = cont.scrollHeight;
+          isAtBottomRef.current = true;
+        }
+      };
+      // Immediate scroll
+      scrollToBottomInstantly();
+      // Follow up after renders
+      setTimeout(scrollToBottomInstantly, 0);
+      setTimeout(scrollToBottomInstantly, 100);
+      setTimeout(scrollToBottomInstantly, 300);
+      setShowScrollToBottom(false);
+      return;
+    }
+
+    // If no new message, don't do anything
+    if (!isNewMessage) return;
 
     const isOwnMessage = lastMessage?.sender_id === user?.id;
 
-    // Calculate if user is near the bottom
-    const threshold = 150; // px from bottom
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    const isNearBottom = distanceFromBottom < threshold;
+    // Always scroll for own messages (user just sent a message)
+    if (isOwnMessage) {
+      forceScrollToBottom(true);
+      setShowScrollToBottom(false);
+      return;
+    }
 
-    // Always scroll for own newly-sent messages, or if user is already near bottom
-    if (isOwnMessage || isNearBottom) {
-      scrollToBottom(true);
+    // For partner messages: only scroll if user is at bottom
+    if (isAtBottomRef.current) {
+      forceScrollToBottom(true);
       setShowScrollToBottom(false);
     } else {
+      // User is reading old messages, just show the button
       setShowScrollToBottom(true);
     }
-  }, [messages, user?.id, scrollToBottom]);
+  }, [messages, user?.id, forceScrollToBottom]);
 
+  // Track scroll position to know if user is at bottom
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
     const onScroll = () => {
-      const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
-      const shouldShow = distance > 160;
-      setShowScrollToBottom((prev) => (prev === shouldShow ? prev : shouldShow));
+      // Mark that user is actively scrolling
+      isUserScrollingRef.current = true;
+      
+      // Clear any existing timer
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
+      
+      // After 200ms of no scroll events, consider scrolling finished
+      scrollTimerRef.current = setTimeout(() => {
+        isUserScrollingRef.current = false;
+      }, 200);
+      
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      
+      // User is "at bottom" if within 50px of the bottom
+      isAtBottomRef.current = distanceFromBottom < 50;
+      
+      // Show/hide scroll-to-bottom button
+      const shouldShowButton = distanceFromBottom > 200;
+      setShowScrollToBottom(prev => prev !== shouldShowButton ? shouldShowButton : prev);
     };
 
-    const onWheel = (e: WheelEvent) => {
-      // Prevent wheel events from bubbling up to parent elements
-      e.stopPropagation();
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      // Allow natural touch scrolling but prevent parent scroll
-      e.stopPropagation();
-    };
-
-    container.addEventListener('scroll', onScroll, { passive: true } as AddEventListenerOptions);
-    container.addEventListener('wheel', onWheel, { passive: false });
-    container.addEventListener('touchmove', onTouchMove, { passive: false });
-
+    container.addEventListener('scroll', onScroll, { passive: true });
+    
+    // Initial check
     onScroll();
+    
     return () => {
-      container.removeEventListener('scroll', onScroll as EventListener);
-      container.removeEventListener('wheel', onWheel);
-      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('scroll', onScroll);
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
     };
   }, []);
 
@@ -747,6 +805,38 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       vv.removeEventListener('scroll', update);
     };
   }, [isMobile]);
+
+  // Keep chat anchored to bottom when the mobile visual viewport changes
+  // (e.g., keyboard open/close) to avoid small auto-scroll/jitter.
+  useEffect(() => {
+    if (!isMobile) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Don't interfere while the user is actively scrolling
+    if (isUserScrollingRef.current) return;
+
+    // If user was at bottom (or it's still the initial load), re-anchor to bottom
+    if (isAtBottomRef.current || isInitialLoadRef.current) {
+      const anchor = () => {
+        const cont = messagesContainerRef.current;
+        if (!cont) return;
+        cont.scrollTop = cont.scrollHeight;
+        isAtBottomRef.current = true;
+      };
+
+      anchor();
+      const t1 = setTimeout(anchor, 0);
+      const t2 = setTimeout(anchor, 50);
+      const t3 = setTimeout(anchor, 200);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    }
+  }, [visualViewportHeight, isMobile]);
 
   // Subscribe to typing indicators (single channel reused for send/receive)
   useEffect(() => {
@@ -1502,7 +1592,6 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
           overscrollBehavior: 'contain',
           overflowAnchor: 'none',
           WebkitOverflowScrolling: 'touch',
-          scrollBehavior: 'auto',
           flex: '1 1 0%',
           minHeight: 0,
           height: 0
@@ -1738,7 +1827,8 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
                         variant="secondary"
                         className="pointer-events-auto shadow-md rounded-full px-3 py-2 bg-background/90 border backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:scale-105 transition-transform"
                         onClick={() => {
-                          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                          forceScrollToBottom(true);
+                          setShowScrollToBottom(false);
                           if (document.visibilityState === 'visible' && document.hasFocus()) {
                             markMessagesAsRead();
                           }
