@@ -1124,7 +1124,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 hidden md:inline-flex"
+            className="h-9 w-9"
             onClick={() => {
               setShowAttachments((v) => !v);
               setShowVoice(false);
@@ -1139,7 +1139,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
             variant="ghost"
             size="icon"
             className={cn(
-              "h-9 w-9 hidden md:inline-flex",
+              "h-9 w-9",
               (showVoice || isRecording) && "bg-muted"
             )}
             onClick={() => {
@@ -1150,7 +1150,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
             <Mic
               className={cn(
                 "w-5 h-5",
-                isRecording ? "text-red-500 animate-pulse" : "text-muted-foreground"
+                isRecording ? "text-destructive animate-pulse" : "text-muted-foreground"
               )}
             />
           </Button>

@@ -193,7 +193,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           {/* Recording Timer */}
           {isRecording && (
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
               <span className="text-sm font-mono">{formatTime(recordingTime)}</span>
             </div>
           )}
