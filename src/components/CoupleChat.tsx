@@ -350,6 +350,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   const [showAttachments, setShowAttachments] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [newMessagesPill, setNewMessagesPill] = useState(0);
 
   // ─── Lightbox state ────────────────────────────────────────
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -387,8 +388,13 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
     const el = containerRef.current;
     if (!el) return;
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const wasNearBottom = userNearBottom.current;
     userNearBottom.current = distFromBottom < 80;
     setShowScrollBtn(distFromBottom > 300);
+    // Clear new messages pill when user scrolls to bottom
+    if (!wasNearBottom && userNearBottom.current) {
+      setNewMessagesPill(0);
+    }
   }, []);
 
   // ─── Mark messages read ────────────────────────────────────
@@ -708,6 +714,10 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
 
           if (msg.sender_id === partnerId) {
             setUnreadCount((c) => c + 1);
+            // Show "new messages" pill if user is scrolled up
+            if (!userNearBottom.current) {
+              setNewMessagesPill((c) => c + 1);
+            }
             if (!isMuted && notificationRef.current) {
               notificationRef.current.currentTime = 0;
               notificationRef.current.play().catch(() => {});
@@ -995,6 +1005,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
             onClick={() => {
               scrollToBottom(false);
               markAsRead();
+              setNewMessagesPill(0);
             }}
           >
             <ChevronDown className="w-4 h-4" />
@@ -1004,6 +1015,24 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
               </span>
             )}
           </Button>
+        </div>
+      )}
+
+      {/* ─── New messages pill (WhatsApp style) ─────────────── */}
+      {newMessagesPill > 0 && !userNearBottom.current && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30">
+          <button
+            type="button"
+            onClick={() => {
+              scrollToBottom(false);
+              markAsRead();
+              setNewMessagesPill(0);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg text-sm font-medium hover:bg-primary/90 transition-colors animate-fade-in"
+          >
+            <ChevronDown className="w-4 h-4" />
+            {newMessagesPill} new message{newMessagesPill > 1 ? "s" : ""}
+          </button>
         </div>
       )}
 
