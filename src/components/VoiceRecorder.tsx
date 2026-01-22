@@ -31,8 +31,32 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   // Request microphone permission and start recording
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Not Supported",
+          description: "Voice recording is not supported in this browser.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      // Check for supported MIME types
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/mp4';
+      
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -43,7 +67,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         setHasRecording(true);
@@ -52,7 +76,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -61,11 +85,23 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error accessing microphone:', error);
+      
+      const err = error as Error;
+      let message = "Could not access microphone. Please check permissions.";
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        message = "Microphone access denied. Please allow microphone permission in your browser settings, then try again.";
+      } else if (err.name === 'NotFoundError') {
+        message = "No microphone found. Please connect a microphone and try again.";
+      } else if (err.name === 'NotReadableError') {
+        message = "Microphone is already in use by another application.";
+      }
+      
       toast({
         title: "Microphone Error",
-        description: "Could not access microphone. Please check permissions.",
+        description: message,
         variant: "destructive"
       });
     }
