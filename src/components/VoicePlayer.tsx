@@ -75,6 +75,13 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
       }
     };
 
+    const handleCanPlayThrough = () => {
+      // Ensure duration is set when audio is ready to play
+      if (audio.duration && isFinite(audio.duration)) {
+        setAudioDuration(audio.duration);
+      }
+    };
+
     const handleTimeUpdate = () => {
       if (audio.currentTime && isFinite(audio.currentTime)) {
         setCurrentTime(audio.currentTime);
@@ -88,18 +95,27 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
       setCurrentTime(0);
     };
 
+    const handleError = (e: Event) => {
+      console.error('Audio playback error:', e);
+      setIsPlaying(false);
+    };
+
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
     };
   }, [audioUrl]);
 
@@ -152,7 +168,7 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
   return (
     <div className={`flex ${isMobile ? 'flex-col items-stretch gap-2 p-2' : 'items-center gap-3 p-3'} rounded-lg max-w-xs ${className}`}>
       {/* Audio element */}
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio ref={audioRef} src={audioUrl} preload="auto" crossOrigin="anonymous" />
 
       {/* Controls Row */}
       <div className={`flex ${isMobile ? 'justify-center gap-4 mb-1' : 'items-center gap-2'}`}>
