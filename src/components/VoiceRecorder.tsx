@@ -22,11 +22,15 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [inputLevel, setInputLevel] = useState(0);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const analyserIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Request microphone permission and start recording
   const startRecording = async () => {
@@ -50,12 +54,57 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       });
       
       // Check for supported MIME types
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/mp4';
+      // Prefer MP4 only on Safari (best support); otherwise prefer WebM/Opus
+      const ua = navigator.userAgent || '';
+      const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
+
+      let mimeType = 'audio/webm';
+      if (isSafari && MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      }
       
+      console.log('[VoiceRecorder] Using MIME type:', mimeType);
+      console.log('[VoiceRecorder] Supported formats:', {
+        'audio/mp4': MediaRecorder.isTypeSupported('audio/mp4'),
+        'audio/webm;codecs=opus': MediaRecorder.isTypeSupported('audio/webm;codecs=opus'),
+        'audio/webm': MediaRecorder.isTypeSupported('audio/webm'),
+        'audio/ogg;codecs=opus': MediaRecorder.isTypeSupported('audio/ogg;codecs=opus'),
+      });
+      
+      // Setup audio context + analyser for input level monitoring
+      try {
+        const audioCtx = new AudioContext();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyserIntervalRef.current = setInterval(() => {
+          if (!analyserRef.current) return;
+          analyserRef.current.getByteTimeDomainData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            const v = (dataArray[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / dataArray.length);
+          setInputLevel(rms);
+        }, 100);
+      } catch (err) {
+        console.warn('[VoiceRecorder] AudioContext init failed:', err);
+      }
+
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -71,9 +120,21 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         setHasRecording(true);
+        console.log('[VoiceRecorder] Final blob size:', blob.size);
+        console.log('[VoiceRecorder] Final blob type:', blob.type);
         
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
+        // Cleanup analyser
+        if (analyserIntervalRef.current) {
+          clearInterval(analyserIntervalRef.current);
+          analyserIntervalRef.current = null;
+        }
+        analyserRef.current = null;
+        if (audioContextRef.current) {
+          audioContextRef.current.close().catch(() => {});
+          audioContextRef.current = null;
+        }
       };
 
       mediaRecorder.start(100); // Collect data every 100ms
@@ -117,6 +178,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      if (analyserIntervalRef.current) {
+        clearInterval(analyserIntervalRef.current);
+        analyserIntervalRef.current = null;
+      }
     }
   };
 
@@ -156,6 +221,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     setIsPlaying(false);
     setRecordingTime(0);
     setAudioBlob(null);
+    setInputLevel(0);
     
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -165,6 +231,15 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    if (analyserIntervalRef.current) {
+      clearInterval(analyserIntervalRef.current);
+      analyserIntervalRef.current = null;
+    }
+    analyserRef.current = null;
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
     }
   };
 
@@ -231,6 +306,12 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
               <span className="text-sm font-mono">{formatTime(recordingTime)}</span>
+              <div className="w-20 h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${Math.min(100, Math.max(2, inputLevel * 400))}%` }}
+                />
+              </div>
             </div>
           )}
           

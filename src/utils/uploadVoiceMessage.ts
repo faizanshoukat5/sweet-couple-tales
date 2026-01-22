@@ -1,14 +1,37 @@
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Get file extension based on MIME type
+ */
+function getExtensionFromMime(mimeType: string): string {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) {
+    return 'm4a';
+  }
+  if (mimeType.includes('ogg')) {
+    return 'ogg';
+  }
+  if (mimeType.includes('wav')) {
+    return 'wav';
+  }
+  // Default to webm for webm and opus
+  return 'webm';
+}
+
 export const uploadVoiceMessage = async (
   userId: string,
   partnerId: string,
   audioBlob: Blob
 ): Promise<string | null> => {
   try {
-    // Create a File object from the Blob with appropriate extension
-    const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.webm`;
-    const file = new File([audioBlob], fileName, { type: 'audio/webm' });
+    // Preserve the actual MIME type from the blob (set by MediaRecorder)
+    const mimeType = audioBlob.type || 'audio/webm';
+    const extension = getExtensionFromMime(mimeType);
+    
+    console.log('[uploadVoiceMessage] Blob MIME type:', mimeType, 'Extension:', extension);
+    
+    // Create a File object from the Blob with correct extension and MIME type
+    const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+    const file = new File([audioBlob], fileName, { type: mimeType });
     
     const filePath = `${userId}/${partnerId}/voice/${fileName}`;
 
@@ -25,6 +48,7 @@ export const uploadVoiceMessage = async (
       return null;
     }
 
+    console.log('[uploadVoiceMessage] Upload successful, returning path:', filePath);
     return filePath;
   } catch (error) {
     console.error('Voice upload error:', error);

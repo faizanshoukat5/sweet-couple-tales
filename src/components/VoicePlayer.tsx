@@ -32,6 +32,9 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
   const organicHeights = useMemo(() => Array.from({ length: 16 }, () => 10 + Math.random() * 18), [audioUrl]);
   // For animated waveform
   const [animFrame, setAnimFrame] = useState(0);
+  const [hasError, setHasError] = useState(false);
+  const [decodedDuration, setDecodedDuration] = useState<number | null>(null);
+  const [decodedRms, setDecodedRms] = useState<number | null>(null);
 
 
   // Format time display
@@ -48,10 +51,23 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
   // Toggle play/pause
   const togglePlayback = () => {
     if (!audioRef.current) return;
+    // Ensure audio is unmuted and audible before attempting playback
+    try {
+      audioRef.current.muted = false;
+      audioRef.current.volume = 1;
+    } catch (e) {
+      // ignore — some browsers may restrict programmatic volume changes
+    }
+
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play();
+      const playPromise = audioRef.current.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise.catch((err) => {
+          console.error('Audio play failed:', err);
+        });
+      }
     }
   };
 
@@ -64,21 +80,78 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
   };
 
 
+  // Debug: fetch the audio URL to check accessibility and content-type
+  useEffect(() => {
+    if (!audioUrl) return;
+    console.log('[VoicePlayer] Checking audio URL:', audioUrl);
+    fetch(audioUrl, { method: 'HEAD' })
+      .then(res => {
+        console.log('[VoicePlayer] HEAD response status:', res.status);
+        console.log('[VoicePlayer] Content-Type:', res.headers.get('content-type'));
+        console.log('[VoicePlayer] Content-Length:', res.headers.get('content-length'));
+        if (!res.ok) {
+          console.error('[VoicePlayer] URL not accessible:', res.status, res.statusText);
+        }
+      })
+      .catch(err => {
+        console.error('[VoicePlayer] Failed to fetch URL:', err);
+      });
+  }, [audioUrl]);
+
+  // Decode audio to inspect duration/RMS (detect silent recordings)
+  useEffect(() => {
+    if (!audioUrl) return;
+    let cancelled = false;
+    const ctx = new AudioContext();
+    fetch(audioUrl)
+      .then(res => res.arrayBuffer())
+      .then(buf => ctx.decodeAudioData(buf))
+      .then(decoded => {
+        if (cancelled) return;
+        const channelData = decoded.getChannelData(0);
+        let sum = 0;
+        for (let i = 0; i < channelData.length; i++) {
+          const v = channelData[i];
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / channelData.length);
+        setDecodedRms(rms);
+        setDecodedDuration(decoded.duration);
+        console.log('[VoicePlayer] Decoded duration:', decoded.duration);
+        console.log('[VoicePlayer] Decoded RMS:', rms);
+      })
+      .catch(err => {
+        console.error('[VoicePlayer] Decode error:', err);
+      })
+      .finally(() => {
+        ctx.close().catch(() => {});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [audioUrl]);
+
   // Setup audio element event listeners
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleLoadedMetadata = () => {
+      console.log('[VoicePlayer] loadedmetadata - duration:', audio.duration);
       if (audio.duration && isFinite(audio.duration)) {
         setAudioDuration(audio.duration);
+      } else if (decodedDuration && isFinite(decodedDuration)) {
+        setAudioDuration(decodedDuration);
       }
     };
 
     const handleCanPlayThrough = () => {
+      console.log('[VoicePlayer] canplaythrough - ready to play');
       // Ensure duration is set when audio is ready to play
       if (audio.duration && isFinite(audio.duration)) {
         setAudioDuration(audio.duration);
+      } else if (decodedDuration && isFinite(decodedDuration)) {
+        setAudioDuration(decodedDuration);
       }
     };
 
@@ -88,7 +161,10 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
       }
     };
 
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      console.log('[VoicePlayer] play event triggered');
+      setIsPlaying(true);
+    };
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => {
       setIsPlaying(false);
@@ -96,7 +172,17 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
     };
 
     const handleError = (e: Event) => {
-      console.error('Audio playback error:', e);
+      const mediaErr = (audio && (audio as any).error) || null;
+      console.error('Audio playback error event:', e);
+      console.error('Audio element src:', audio?.src);
+      console.error('Audio networkState:', audio?.networkState);
+      console.error('Audio readyState:', audio?.readyState);
+      console.error('MediaError:', mediaErr);
+      if (mediaErr) {
+        console.error('MediaError code:', mediaErr.code, 'message:', mediaErr.message);
+        // Code 1: MEDIA_ERR_ABORTED, 2: MEDIA_ERR_NETWORK, 3: MEDIA_ERR_DECODE, 4: MEDIA_ERR_SRC_NOT_SUPPORTED
+      }
+      setHasError(true);
       setIsPlaying(false);
     };
 
@@ -164,11 +250,29 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
     );
   };
 
+  // Infer MIME type from URL extension for type hint
+  const inferredType = (() => {
+    if (audioUrl.includes('.m4a') || audioUrl.includes('.mp4')) return 'audio/mp4';
+    if (audioUrl.includes('.ogg')) return 'audio/ogg';
+    if (audioUrl.includes('.wav')) return 'audio/wav';
+    return 'audio/webm';
+  })();
+
   // Layout: stack vertically on mobile, horizontal on desktop
   return (
     <div className={`flex ${isMobile ? 'flex-col items-stretch gap-2 p-2' : 'items-center gap-3 p-3'} rounded-lg max-w-xs ${className}`}>
-      {/* Audio element */}
-      <audio ref={audioRef} src={audioUrl} preload="auto" crossOrigin="anonymous" />
+      {/* Audio element with source and type hint */}
+      <audio
+        ref={audioRef}
+        preload="auto"
+        // Keep native controls available when an error occurs for debugging
+        controls={hasError}
+      >
+        <source src={audioUrl} type={inferredType} />
+        {/* Fallback: try without type hint */}
+        <source src={audioUrl} />
+        Your browser does not support the audio element.
+      </audio>
 
       {/* Controls Row */}
       <div className={`flex ${isMobile ? 'justify-center gap-4 mb-1' : 'items-center gap-2'}`}>
@@ -215,7 +319,23 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
           const percent = Math.max(0, Math.min(1, x / rect.width));
           seekTo(percent * audioDuration);
         }}>
-          {renderWaveform()}
+            {renderWaveform()}
+            {hasError && audioUrl && (
+              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+                <span>Can't play audio in-place.</span>
+                <a href={audioUrl} target="_blank" rel="noreferrer" className="underline text-primary">
+                  Open audio in new tab
+                </a>
+                <a download className="underline text-muted-foreground" href={audioUrl}>
+                  Download
+                </a>
+              </div>
+            )}
+            {decodedRms !== null && decodedRms < 0.005 && (
+              <div className="mt-2 text-xs text-destructive">
+                Recording appears silent. Please check your microphone input device and permissions.
+              </div>
+            )}
         </div>
         {/* Slider for seeking */}
         <Slider

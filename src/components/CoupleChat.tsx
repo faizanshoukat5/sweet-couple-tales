@@ -96,11 +96,40 @@ const useSignedUrl = (raw?: string) => {
       setUrl(null);
       return;
     }
-    if (raw.startsWith("http")) {
+    console.log('[useSignedUrl] raw attachment_url:', raw);
+    
+    // If it's already a signed URL (contains 'token='), use it directly
+    if (raw.startsWith("http") && raw.includes('token=')) {
+      console.log('[useSignedUrl] Already a signed URL, using as-is');
       setUrl(raw);
       return;
     }
-    getSignedChatAttachmentUrl(raw).then(setUrl).catch(() => setUrl(null));
+    
+    // If it's a public URL, extract the path and create a signed URL
+    let pathToSign = raw;
+    if (raw.startsWith("http")) {
+      // Extract path from public URL: /storage/v1/object/public/chat_attachments/...
+      const match = raw.match(/\/chat_attachments\/(.+)$/);
+      if (match) {
+        pathToSign = match[1];
+        console.log('[useSignedUrl] Extracted path from public URL:', pathToSign);
+      } else {
+        console.warn('[useSignedUrl] Could not extract path from URL, trying as-is:', raw);
+        setUrl(raw);
+        return;
+      }
+    }
+    
+    console.log('[useSignedUrl] Creating signed URL for path:', pathToSign);
+    getSignedChatAttachmentUrl(pathToSign)
+      .then((signedUrl) => {
+        console.log('[useSignedUrl] Got signed URL:', signedUrl);
+        setUrl(signedUrl);
+      })
+      .catch((err) => {
+        console.error('[useSignedUrl] Failed to get signed URL:', err);
+        setUrl(null);
+      });
   }, [raw]);
   return url;
 };
