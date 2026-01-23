@@ -393,6 +393,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationRef = useRef<HTMLAudioElement>(null);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Track whether user is near bottom (for auto-scroll decisions)
   const userNearBottom = useRef(true);
@@ -401,6 +402,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   const [mounted, setMounted] = useState(false);
   // Partner profile for header display
   const [partnerProfile, setPartnerProfile] = useState<{ display_name?: string | null; email?: string | null } | null>(null);
+  const [partnerOnline, setPartnerOnline] = useState(false);
 
   // ─── Scroll helpers ────────────────────────────────────────
   const scrollToBottom = useCallback((instant = false) => {
@@ -816,6 +818,55 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
     };
   }, [user?.id, partnerId]);
 
+  // ─── Presence (online status) ─────────────────────────────
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase.channel('presence');
+    presenceChannelRef.current = channel;
+
+    const handlePresence = (payload: any) => {
+      try {
+        const p = payload.payload || payload;
+        if (!p || !p.user_id) return;
+        // If event is for our partner, update their online status
+        if (p.user_id === partnerId) {
+          setPartnerOnline(Boolean(p.online));
+        }
+      } catch (err) {
+        console.error('presence handler error', err);
+      }
+    };
+
+    channel.on('broadcast', { event: 'presence' }, handlePresence).subscribe((status) => {
+      // no-op; subscription established
+    });
+
+    // Announce ourselves as online
+    const announce = (online: boolean) => {
+      channel.send({ type: 'broadcast', event: 'presence', payload: { user_id: user.id, online, ts: Date.now() } }).catch(() => {});
+    };
+
+    // Send initial online
+    announce(true);
+
+    // Heartbeat to keep presence alive
+    const hb = setInterval(() => announce(true), 25000);
+
+    const handleBeforeUnload = () => {
+      announce(false);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(hb);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      try { announce(false); } catch {}
+      presenceChannelRef.current = null;
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, partnerId]);
+
   // Fetch partner profile for header display
   useEffect(() => {
     if (!isValidUUID(partnerId)) {
@@ -931,7 +982,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
             <span
               className={cn(
                 "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                connectionStatus === "connected"
+                partnerOnline
                   ? "bg-green-500"
                   : connectionStatus === "connecting"
                   ? "bg-yellow-500 animate-pulse"
@@ -960,7 +1011,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
                     />
                   </span>
                 </span>
-              ) : connectionStatus === "connected" ? (
+              ) : partnerOnline ? (
                 "Online"
               ) : (
                 "Offline"
