@@ -399,6 +399,8 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   // Track if we've done the initial scroll
   const initialScrollDone = useRef(false);
   const [mounted, setMounted] = useState(false);
+  // Partner profile for header display
+  const [partnerProfile, setPartnerProfile] = useState<{ display_name?: string | null; email?: string | null } | null>(null);
 
   // ─── Scroll helpers ────────────────────────────────────────
   const scrollToBottom = useCallback((instant = false) => {
@@ -814,6 +816,29 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
     };
   }, [user?.id, partnerId]);
 
+  // Fetch partner profile for header display
+  useEffect(() => {
+    if (!isValidUUID(partnerId)) {
+      setPartnerProfile(null);
+      return;
+    }
+    const fetchPartnerProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('display_name, email')
+          .eq('user_id', partnerId)
+          .maybeSingle();
+        if (!error && data) setPartnerProfile(data);
+        else setPartnerProfile(null);
+      } catch (err) {
+        console.error('Failed to fetch partner profile:', err);
+        setPartnerProfile(null);
+      }
+    };
+    fetchPartnerProfile();
+  }, [partnerId]);
+
   // ─── Focus / visibility listeners ──────────────────────────
   useEffect(() => {
     if (!user?.id || !isValidUUID(partnerId)) return;
@@ -915,7 +940,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
             />
           </div>
           <div>
-            <h2 className="font-semibold text-sm">Your Partner</h2>
+            <h2 className="font-semibold text-sm">{partnerProfile?.display_name || partnerProfile?.email || 'Your Partner'}</h2>
             <p className="text-xs text-muted-foreground">
               {partnerTyping ? (
                 <span className="text-primary font-medium flex items-center gap-1">
