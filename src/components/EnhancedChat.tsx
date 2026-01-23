@@ -142,6 +142,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   const [isOnline, setIsOnline] = useState(false);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [partnerProfile, setPartnerProfile] = useState<{ display_name: string | null; avatar_emoji: string | null } | null>(null);
 
   // Mobile viewport (keyboard-safe height) + scroll meta
   const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
@@ -551,6 +552,25 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
+
+  // Fetch partner profile
+  useEffect(() => {
+    const fetchPartnerProfile = async () => {
+      if (!isValidUUID(partnerId)) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_emoji')
+        .eq('user_id', partnerId)
+        .maybeSingle();
+      
+      if (!error && data) {
+        setPartnerProfile(data);
+      }
+    };
+    
+    fetchPartnerProfile();
+  }, [partnerId]);
 
   // Fetch messages once and rely on realtime for updates
   useEffect(() => {
@@ -964,7 +984,9 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
           </div>
           
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-foreground truncate">Your Partner</h2>
+            <h2 className="font-semibold text-foreground truncate">
+              {partnerProfile?.display_name || 'Your Partner'}
+            </h2>
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 {partnerTyping ? (
