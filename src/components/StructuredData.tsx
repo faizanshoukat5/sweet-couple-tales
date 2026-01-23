@@ -7,7 +7,7 @@ const StructuredData = () => {
       "@type": "WebApplication",
       "name": "CoupleConnect",
       "description": "A beautiful romantic memories journal app for couples to preserve their special moments together",
-      "url": "https://coupleconnect.lovable.app",
+      "url": (typeof window !== 'undefined' ? window.location.origin : 'https://coupleconnect.app'),
       "applicationCategory": "LifestyleApplication",
       "operatingSystem": "Web Browser",
       "offers": {
