@@ -1087,73 +1087,88 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     }
   };
 
-  // Get message status icon
+  // Get message status icon - WhatsApp-style read receipts
   const getMessageStatusIcon = (msg: Message) => {
     if (msg.sender_id !== user?.id) return null;
 
+    // Sending state - single hollow circle with pulse animation
     if (msg.id.startsWith('temp-')) {
       return (
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="inline-flex items-center gap-1">
-                <Circle className="w-3 h-3 text-muted-foreground/50" />
-                <span className="sr-only">Sending...</span>
+              <span className="inline-flex items-center ml-1">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-muted-foreground/30"></span>
+                  <Circle className="relative w-3 h-3 text-muted-foreground/50" />
+                </span>
               </span>
             </TooltipTrigger>
-            <TooltipContent side="top" align="end">
-              <p>Sending...</p>
+            <TooltipContent side="top" align="end" className="text-xs">
+              Sending...
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       );
     }
 
+    // Read state - double blue checkmarks ✓✓
     if (msg.read_at) {
+      const readTime = new Date(msg.read_at);
+      const readTimeStr = readTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return (
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="inline-flex items-center gap-1">
-                <CheckCheck className="w-3 h-3 text-primary drop-shadow-sm" />
-                <span className="text-xs text-primary font-semibold">Read</span>
+              <span className="inline-flex items-center ml-1 animate-in fade-in-0 duration-200">
+                <CheckCheck className="w-4 h-4 text-sky-500 drop-shadow-sm" strokeWidth={2.5} />
               </span>
             </TooltipTrigger>
-            <TooltipContent side="top" align="end">
-              <p>Read</p>
+            <TooltipContent side="top" align="end" className="text-xs">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium">Read</span>
+                <span className="text-muted-foreground">{readTimeStr}</span>
+              </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       );
-    } else if (msg.delivered_at) {
+    }
+    
+    // Delivered state - double gray checkmarks ✓✓
+    if (msg.delivered_at) {
+      const deliveredTime = new Date(msg.delivered_at);
+      const deliveredTimeStr = deliveredTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return (
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="inline-flex items-center gap-1">
-                <CheckCheck className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
-                <span className="text-xs text-muted-foreground font-semibold">Delivered</span>
+              <span className="inline-flex items-center ml-1">
+                <CheckCheck className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.5} />
               </span>
             </TooltipTrigger>
-            <TooltipContent side="top" align="end">
-              <p>Delivered</p>
+            <TooltipContent side="top" align="end" className="text-xs">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium">Delivered</span>
+                <span className="text-muted-foreground">{deliveredTimeStr}</span>
+              </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       );
     }
 
+    // Sent state - single gray checkmark ✓
     return (
-      <TooltipProvider>
+      <TooltipProvider delayDuration={300}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="inline-flex items-center gap-1">
-              <Check className="w-3 h-3 text-muted-foreground drop-shadow-sm" />
-              <span className="text-xs text-muted-foreground font-semibold">Sent</span>
+            <span className="inline-flex items-center ml-1">
+              <Check className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.5} />
             </span>
           </TooltipTrigger>
-          <TooltipContent side="top" align="end">
-            <p>Sent</p>
+          <TooltipContent side="top" align="end" className="text-xs">
+            Sent
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
