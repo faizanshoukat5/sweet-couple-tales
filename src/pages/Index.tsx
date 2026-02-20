@@ -13,7 +13,7 @@ const InteractiveMemoryDemo = lazy(() => import("@/components/InteractiveMemoryD
 const Timeline = lazy(() => import("@/components/Timeline"));
 const HomeAlbumsPreview = lazy(() => import("@/components/HomeAlbumsPreview"));
 const FAQSection = lazy(() => import("@/components/FAQSection"));
-const TestimonialsSection = lazy(() => import("@/components/TestimonialsSection"));
+
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -79,9 +79,6 @@ const Index = () => {
           </LazySection>
         </ParallaxSection>
         
-        <LazySection>
-          <TestimonialsSection />
-        </LazySection>
         
         <ParallaxSection backgroundElements={<TimelineBackground />}>
           <LazySection>
