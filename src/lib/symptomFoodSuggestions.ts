@@ -226,12 +226,16 @@ export function getCurrentCyclePhase(lastPeriodStart: Date | null, cycleLength: 
   if (!lastPeriodStart || !cycleLength) return null;
   const today = new Date();
   const diffMs = today.getTime() - lastPeriodStart.getTime();
-  const dayInCycle = Math.floor(diffMs / (1000 * 60 * 60 * 24)) % cycleLength;
+  const rawDay = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  // Wrap around so cycle resets after cycleLength days
+  const dayInCycle = ((rawDay % cycleLength) + cycleLength) % cycleLength;
 
-  if (dayInCycle < 0) return null;
-  if (dayInCycle <= 5) return 'menstrual';
-  if (dayInCycle <= 13) return 'follicular';
-  if (dayInCycle <= 16) return 'ovulation';
+  const periodEnd = Math.min(5, cycleLength - 1);
+  const ovulationDay = cycleLength - 14;
+
+  if (dayInCycle <= periodEnd) return 'menstrual';
+  if (dayInCycle < ovulationDay - 5) return 'follicular';
+  if (dayInCycle <= ovulationDay + 1) return 'ovulation';
   return 'luteal';
 }
 
