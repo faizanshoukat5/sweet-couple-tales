@@ -27,10 +27,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const analyserIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const analyserIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Request microphone permission and start recording
   const startRecording = async () => {

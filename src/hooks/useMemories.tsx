@@ -336,7 +336,7 @@ export const useMemories = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('memories-changes')
+      .channel(`memories-changes-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memories' }, (payload) => {
         const newMemory: any = (payload as any).new;
         if (!newMemory || newMemory.user_id !== user.id) return;

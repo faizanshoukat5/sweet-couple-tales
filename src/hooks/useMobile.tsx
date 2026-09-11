@@ -56,7 +56,7 @@ export function useMobile(): MobileDetection {
     };
 
     // Throttled resize handler for performance
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(updateDetection, 150);

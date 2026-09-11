@@ -127,7 +127,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   const [newMessage, setNewMessage] = useState<string>('');
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [lastNewMessageId, setLastNewMessageId] = useState<string | null>(null);
@@ -152,7 +152,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
   const isAtBottomRef = useRef(true);
   const isInitialLoadRef = useRef(true);
   const isUserScrollingRef = useRef(false);
-  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Force scroll to bottom - used for sending messages and initial load
   const forceScrollToBottom = useCallback((smooth = true) => {
@@ -865,7 +865,7 @@ const ChatAttachmentView = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) =>
     const channelName = `typing-${[user.id, partnerId].sort().join('-')}`;
     const typingChannel = supabase.channel(channelName);
     typingChannelRef.current = typingChannel;
-    let hideTimeout: NodeJS.Timeout | undefined;
+    let hideTimeout: ReturnType<typeof setTimeout> | undefined;
 
     typingChannel
       .on('broadcast', { event: 'typing' }, (payload) => {

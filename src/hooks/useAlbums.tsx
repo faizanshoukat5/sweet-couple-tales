@@ -86,7 +86,7 @@ export const useAlbums = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('albums-changes')
+      .channel(`albums-changes-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'albums' }, (payload) => {
         const newAlbum: any = (payload as any).new;
         if (!newAlbum || newAlbum.user_id !== user.id) return;

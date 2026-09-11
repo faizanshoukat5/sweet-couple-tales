@@ -27,7 +27,7 @@ export function useRealtimeChat(partnerId: string | null) {
   const [isOnline, setIsOnline] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sortedKey = user?.id && partnerId ? [user.id, partnerId].sort().join('-') : null;
 
