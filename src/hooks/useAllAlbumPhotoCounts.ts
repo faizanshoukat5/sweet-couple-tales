@@ -32,7 +32,7 @@ export function useAllAlbumPhotoCounts() {
 
     // Realtime updates to reflect new/deleted photos per album
     const channel = supabase
-      .channel('album-photos-counts')
+      .channel(`album-photos-counts-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'album_photos' }, async () => {
         // Refresh counts on any change
         const { data } = await supabase.from('album_photos').select('album_id');
