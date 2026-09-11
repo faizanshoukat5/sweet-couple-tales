@@ -39,7 +39,7 @@ export function useViewport() {
   });
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     
     const updateViewport = () => {
       clearTimeout(timeoutId);

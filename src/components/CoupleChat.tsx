@@ -391,7 +391,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationRef = useRef<HTMLAudioElement>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
@@ -797,7 +797,7 @@ const CoupleChat: React.FC<{ partnerId: string | null }> = ({ partnerId }) => {
     const chName = `typing-${[user.id, partnerId].sort().join("-")}`;
     const channel = supabase.channel(chName);
     typingChannelRef.current = channel;
-    let hideTimer: NodeJS.Timeout;
+    let hideTimer: ReturnType<typeof setTimeout>;
 
     channel
       .on("broadcast", { event: "typing" }, (payload) => {
