@@ -1,10 +1,7 @@
-import { describe, expect, it } from 'bun:test';
+import assert from 'node:assert/strict';
 import { getCycleDay } from './cycleDay';
 
-describe('getCycleDay', () => {
-  it('wraps the day counter at the configured cycle length', () => {
-    expect(getCycleDay(29, 30)).toBe(30);
-    expect(getCycleDay(30, 30)).toBe(1);
-    expect(getCycleDay(81, 28)).toBe(26);
-  });
-});
+assert.equal(getCycleDay(29, 30), 30);
+assert.equal(getCycleDay(30, 30), 1);
+assert.equal(getCycleDay(81, 28), 26);
+console.log('Cycle day rollover checks passed.');
