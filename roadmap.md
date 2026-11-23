@@ -1,0 +1,2 @@
+- [ ] Walk through Emma & Alex demo: verify partner connection, send a love note, plan a date, and inspect the cycle phase ring.
+- [x] Share the demo login details with the user.
