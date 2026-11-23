@@ -181,7 +181,7 @@ export const useAlbumAsPDF = (album, albumMemories, albumPhotos, signedUrls, mem
   // Helper to convert image URL to base64 data URL
   const toDataUrl = (url: string) => new Promise<string>((resolve, reject) => {
     const img = new window.Image();
-    img.crossOrigin = 'Anonymous';
+    img.crossOrigin = 'anonymous';
     img.onload = function () {
       const canvas = document.createElement('canvas');
       canvas.width = img.width;

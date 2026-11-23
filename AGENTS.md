@@ -1,0 +1,1 @@
+- Keep cycle-day normalization in the pure `src/lib/cycleDay.ts` helper so day labels and rollover behavior are independently testable.

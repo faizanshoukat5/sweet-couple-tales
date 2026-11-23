@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getCycleDay } from '@/lib/cycleDay';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -96,17 +97,21 @@ export const CycleTrackerCard: React.FC = () => {
   const calculatePredictions = (cycleData: Cycle[]): Prediction | null => {
     if (cycleData.length === 0) return null;
 
-    const avgCycleLength = cycleData.length > 1 
+    const avgCycleLength = Math.max(1, cycleData.length > 1 
       ? Math.round(cycleData.reduce((sum, cycle) => sum + cycle.cycle_length, 0) / cycleData.length)
-      : cycleData[0].cycle_length;
+      : cycleData[0].cycle_length);
     
     const avgPeriodLength = Math.round(cycleData.reduce((sum, cycle) => sum + cycle.period_length, 0) / cycleData.length);
     
     const lastCycle = cycleData[0];
-    const lastCycleStart = new Date(lastCycle.cycle_start_date);
+    const [startYear, startMonth, startDay] = lastCycle.cycle_start_date.split('-').map(Number);
+    const lastCycleStart = new Date(startYear, startMonth - 1, startDay);
     const today = new Date();
-    const daysSinceLastPeriod = Math.floor((today.getTime() - lastCycleStart.getTime()) / (1000 * 60 * 60 * 24));
-    const cycleDay = daysSinceLastPeriod + 1;
+    const daysSinceLastPeriod = Math.max(0, Math.floor((
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) -
+      Date.UTC(startYear, startMonth - 1, startDay)
+    ) / (1000 * 60 * 60 * 24)));
+    const cycleDay = getCycleDay(daysSinceLastPeriod, avgCycleLength);
 
     let phase = 'follicular';
     if (cycleDay <= avgPeriodLength) {
@@ -117,7 +122,11 @@ export const CycleTrackerCard: React.FC = () => {
       phase = 'luteal';
     }
 
-    const nextPeriodDate = new Date(lastCycleStart);
+    const cyclesElapsed = Math.floor(daysSinceLastPeriod / avgCycleLength);
+    const currentCycleStart = new Date(lastCycleStart);
+    currentCycleStart.setDate(currentCycleStart.getDate() + cyclesElapsed * avgCycleLength);
+
+    const nextPeriodDate = new Date(currentCycleStart);
     nextPeriodDate.setDate(nextPeriodDate.getDate() + avgCycleLength);
 
     const ovulationDate = new Date(nextPeriodDate);
